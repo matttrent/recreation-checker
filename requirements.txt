@@ -2,9 +2,10 @@ appdirs==1.4.3
 attrs==18.2.0
 beautifulsoup4==4.7.1
 black==18.9b0
-certifi==2018.11.29
+certifi
 chardet==3.0.4
 Click==7.0
+dacite==1.0.0
 fake-useragent==0.1.11
 future==0.17.1
 idna==2.8

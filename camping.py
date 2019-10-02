@@ -96,13 +96,9 @@ def get_num_available_sites(resp, start_date, end_date):
 
 def aggregate_availability(availabilities, dates):
     if len(availabilities) == 0:
-        return []        
+        return []
 
-    availabilities = list(
-        item
-        for item in availabilities.items()
-        if item[0] in dates
-    )
+    availabilities = list(item for item in availabilities.items() if item[0] in dates)
     availabilities.sort()
 
     first = availabilities[0]
@@ -163,11 +159,21 @@ def cli(ctx):
 
 
 @cli.command(help="Checks a specific date range for site availability.")
-@click.option("-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]")
-@click.option("-e", "--end-date", required=True, type=DATE_TYPE, help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.")
+@click.option(
+    "-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]"
+)
+@click.option(
+    "-e",
+    "--end-date",
+    required=True,
+    type=DATE_TYPE,
+    help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.",
+)
 @click.argument("parks", required=True, type=int, nargs=-1)
 @click.pass_context
-def check(ctx: click.Context, start_date: datetime, end_date: datetime, parks: List[int]) -> None:
+def check(
+    ctx: click.Context, start_date: datetime, end_date: datetime, parks: List[int]
+) -> None:
 
     out = []
     availabilities = False
@@ -193,8 +199,7 @@ def check(ctx: click.Context, start_date: datetime, end_date: datetime, parks: L
     if availabilities:
         print(
             "There are campsites available from {} to {}!!!".format(
-                start_date.date(),
-                end_date.date(),
+                start_date.date(), end_date.date()
             )
         )
     else:
@@ -202,14 +207,32 @@ def check(ctx: click.Context, start_date: datetime, end_date: datetime, parks: L
     print("\n".join(out))
 
 
-@cli.command(help="Searches a date range for all availabilities longer than the specified length.")
+@cli.command(
+    help="Searches a date range for all availabilities longer than the specified length."
+)
 @click.pass_context
-@click.option("-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]")
-@click.option("-e", "--end-date", required=True, type=DATE_TYPE, help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.")
-@click.option("-l", "--stay-length", type=int, default=1, help="Minimum stay length to consider.")
+@click.option(
+    "-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]"
+)
+@click.option(
+    "-e",
+    "--end-date",
+    required=True,
+    type=DATE_TYPE,
+    help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.",
+)
+@click.option(
+    "-l", "--stay-length", type=int, default=1, help="Minimum stay length to consider."
+)
 @click.argument("parks", required=True, type=int, nargs=-1)
-def search(ctx: click.Context, start_date: datetime, end_date: datetime, stay_length: int, parks: List[int]) -> None:
-    
+def search(
+    ctx: click.Context,
+    start_date: datetime,
+    end_date: datetime,
+    stay_length: int,
+    parks: List[int],
+) -> None:
+
     out = []
     for park_id in parks:
         params = generate_params(start_date, end_date)

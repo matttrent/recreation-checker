@@ -1,24 +1,17 @@
 #!/usr/bin/env python3
 
-import argparse
+import pdb
 import json
-import sys
+import threading
+import datetime as dt
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Dict, Any
+from concurrent.futures import ThreadPoolExecutor
 
 import click
 import requests
 from dataclasses import dataclass
-from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
-from pprint import pprint
-
-
-@dataclass(order=True)
-class SiteAvailability:
-    date: str
-    status: str
-    length: int = 1
 
 
 BASE_URL = "https://www.recreation.gov"
@@ -32,7 +25,95 @@ DATE_TYPE = click.DateTime(formats=[INPUT_DATE_FORMAT])
 SUCCESS_EMOJI = "🏕"
 FAILURE_EMOJI = "❌"
 
-headers = {"User-Agent": UserAgent().random}
+HEADERS = {"User-Agent": UserAgent().random}
+
+THREAD_LOCAL = threading.local()
+
+
+def get_session():
+    if not hasattr(THREAD_LOCAL, "session"):
+        THREAD_LOCAL.session = requests.Session()
+    return THREAD_LOCAL.session
+
+
+@dataclass(order=True)
+class SiteAvailability:
+    date: str
+    status: str
+    length: int = 1
+    site_id: int = -1
+
+
+class Campsite:
+    id: int
+    name: str
+    site_status: str
+    site_type: str
+
+    def __init__(self, response):
+        # pdb.set_trace()
+        self.id = int(response["campsite_id"])
+        self.name = response["campsite_name"]
+        self.site_status = response["campsite_status"]
+        self.site_type = response["campsite_type"]
+
+    @property
+    def url(self) -> str:
+        return f"https://www.recreation.gov/camping/campsites/{self.id}"
+
+    @staticmethod
+    def fetch_campsite(site_id: int) -> "Campsite":
+        url = "{}{}{}".format(BASE_URL, CAMPSITE_ENDPOINT, site_id)
+        resp = send_request(url, None)
+        site = Campsite(resp["campsite"])
+        return site
+
+
+class Campground:
+    id: int
+    name: str
+    site_ids: List[int]
+    sites: Dict[int, Campsite]
+    avails: Dict[int, SiteAvailability] = {}
+
+    def __init__(self, response):
+        self.id = response["facility_id"]
+        self.name = response["facility_name"]
+        self.site_ids = [int(site) for site in response["campsites"]]
+        self.sites = {}
+
+    @property
+    def url(self) -> str:
+        return f"https://www.recreation.gov/camping/campgrounds/{self.id}"
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.id}, {self.name})"
+
+    @staticmethod
+    def fetch_campground(camp_id: int) -> "Campground":
+        url = "{}{}{}".format(BASE_URL, CAMPGROUND_ENDPOINT, camp_id)
+        resp = send_request(url, {})
+        # print(json.dumps(resp, indent=2))
+        camp = Campground(resp["campground"])
+        return camp
+
+    def fetch_sites(self) -> None:
+        # self.sites = {
+        #     site_id: Campsite.fetch_campsite(site_id)
+        #     for site_id in self.site_ids
+        # }
+        with ThreadPoolExecutor(max_workers=100) as executor:
+            self.sites = {
+                site.id: site
+                for site in executor.map(Campsite.fetch_campsite, self.site_ids)
+            }
+
+    def fetch_availability(
+        self, start_date: dt.datetime, end_date: dt.datetime
+    ) -> None:
+        url = "{}{}{}".format(BASE_URL, AVAILABILITY_ENDPOINT, self.id)
+        params = generate_params(start_date, end_date)
+        return send_request(url, params)
 
 
 def format_date(date_object):
@@ -40,13 +121,17 @@ def format_date(date_object):
     return date_formatted
 
 
-def generate_params(start, end):
-    params = {"start_date": format_date(start), "end_date": format_date(end)}
+def generate_params(start_date, end_date):
+    params = {
+        "start_date": format_date(start_date), 
+        "end_date": format_date(end_date)
+    }
     return params
 
 
 def send_request(url, params):
-    resp = requests.get(url, params=params, headers=headers)
+    session = get_session()
+    resp = session.get(url, params=params, headers=HEADERS)
     # print(resp.url)
     if resp.status_code != 200:
         raise RuntimeError(
@@ -58,20 +143,26 @@ def send_request(url, params):
     return resp.json()
 
 
-def get_park_information(park_id, params):
+def get_park_availability(park_id, params):
     url = "{}{}{}".format(BASE_URL, AVAILABILITY_ENDPOINT, park_id)
     return send_request(url, params)
 
 
-def get_site_information(campsite_id):
-    url = "{}{}{}".format(BASE_URL, CAMPSITE_ENDPOINT, campsite_id)
-    return send_request(url, None)
+# def get_site_information(campsite_id):
+#     url = "{}{}{}".format(BASE_URL, CAMPSITE_ENDPOINT, campsite_id)
+#     resp = send_request(url, None)
+#     # print(json.dumps(resp, indent=2))
+#     return resp
 
 
-def get_name_of_site(park_id):
-    url = "{}{}{}".format(BASE_URL, CAMPGROUND_ENDPOINT, park_id)
-    resp = send_request(url, {})
-    return resp["campground"]["facility_name"]
+# def get_name_of_site(park_id):
+#     url = "{}{}{}".format(BASE_URL, CAMPGROUND_ENDPOINT, park_id)
+#     resp = send_request(url, {})
+#     # print(json.dumps(resp, indent=2))
+#     camp = Campground(resp["campground"])
+#     # print(camp)
+#     # print(camp.url)
+#     return resp["campground"]["facility_name"]
 
 
 def get_num_available_sites(resp, start_date, end_date):
@@ -81,7 +172,9 @@ def get_num_available_sites(resp, start_date, end_date):
     num_days = (end_date - start_date).days
     dates = [end_date - timedelta(days=i) for i in range(1, num_days + 1)]
     dates = set(format_date(i) for i in dates)
-    for site in resp["campsites"].values():
+    for site_id, site in resp["campsites"].items():
+        # site_info = get_site_information(site_id)
+        # print(json.dumps(site_info, indent=2))
         available = bool(len(site["availabilities"]))
         for date, status in site["availabilities"].items():
             if date not in dates:
@@ -98,7 +191,11 @@ def aggregate_availability(availabilities, dates):
     if len(availabilities) == 0:
         return []
 
-    availabilities = list(item for item in availabilities.items() if item[0] in dates)
+    availabilities = list(
+        item
+        for item in availabilities.items()
+        if item[0] in dates
+    )
     availabilities.sort()
 
     first = availabilities[0]
@@ -133,8 +230,11 @@ def get_num_available_sites_alt(resp, start_date, end_date, min_stay):
         # pprint(site)
         available = bool(len(site["availabilities"]))
         aggs = aggregate_availability(site["availabilities"], dates)
+        # print(site_id, aggs)
         aggs = filter_availability(aggs, min_stay)
-        site_info = get_site_information(site_id)
+        # print(site_id, aggs)
+        # site_info = get_site_information(site_id)
+        # print(json.dumps(site_info), indent=2)
         # if site_id == "403381":
         #     pprint(site_info)
         if len(aggs) > 0:
@@ -153,8 +253,9 @@ def get_num_available_sites_alt(resp, start_date, end_date, min_stay):
 
 
 @click.group()
+@click.option('--debug/--no-debug', default=False)
 @click.pass_context
-def cli(ctx):
+def cli(ctx, debug):
     pass
 
 
@@ -179,10 +280,13 @@ def check(
     availabilities = False
     for park_id in parks:
         params = generate_params(start_date, end_date)
-        park_information = get_park_information(park_id, params)
-        name_of_site = get_name_of_site(park_id)
+        park_availability = get_park_availability(park_id, params)
+        # print(json.dumps(park_availability, indent=2))
+        camp = Campground.fetch_campground(park_id)
+        camp.fetch_sites()
+        print([site.name for site in camp.sites.values()])
         current, maximum = get_num_available_sites(
-            park_information, start_date, end_date
+            park_availability, start_date, end_date
         )
         if current:
             emoji = SUCCESS_EMOJI
@@ -192,7 +296,7 @@ def check(
 
         out.append(
             "{} {}: {} site(s) available out of {} site(s)".format(
-                emoji, name_of_site, current, maximum
+                emoji, camp.name, current, maximum
             )
         )
 
@@ -233,13 +337,17 @@ def search(
     parks: List[int],
 ) -> None:
 
-    out = []
-    for park_id in parks:
+    def func(park_id: int) -> str:
+        camp = Campground.fetch_campground(park_id)
+        print(camp.name)
+        camp.fetch_sites()
+        print([site.name for site in camp.sites.values()])
+        # name_of_site = get_name_of_site(park_id)
+        # print(name_of_site)
         params = generate_params(start_date, end_date)
-        park_information = get_park_information(park_id, params)
-        name_of_site = get_name_of_site(park_id)
+        park_availability = get_park_availability(park_id, params)
         current, maximum = get_num_available_sites_alt(
-            park_information, start_date, end_date, stay_length
+            park_availability, start_date, end_date, stay_length
         )
         if current:
             emoji = SUCCESS_EMOJI
@@ -247,11 +355,38 @@ def search(
         else:
             emoji = FAILURE_EMOJI
 
-        out.append(
-            "{} {}: {} site(s) available out of {} site(s)".format(
-                emoji, name_of_site, current, maximum
-            )
+        return "{} {}: {} site(s) available out of {} site(s)".format(
+            emoji, camp.name, current, maximum
         )
+
+    with ThreadPoolExecutor() as executor:
+        result = executor.map(func, parks)
+
+    for x in result:
+        print(x)
+    # out = [x for x in result]
+    # print(out)
+
+    # out = []
+    # for park_id in parks:
+    #     name_of_site = get_name_of_site(park_id)
+    #     print(name_of_site)
+    #     params = generate_params(start_date, end_date)
+    #     park_information = get_park_information(park_id, params)
+    #     current, maximum = get_num_available_sites_alt(
+    #         park_information, start_date, end_date, stay_length
+    #     )
+    #     if current:
+    #         emoji = SUCCESS_EMOJI
+    #         availabilities = True
+    #     else:
+    #         emoji = FAILURE_EMOJI
+
+    #     out.append(
+    #         "{} {}: {} site(s) available out of {} site(s)".format(
+    #             emoji, name_of_site, current, maximum
+    #         )
+    #     )
 
 
 if __name__ == "__main__":

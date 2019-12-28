@@ -4,6 +4,7 @@ import pdb
 import json
 import threading
 import datetime as dt
+import collections
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor
@@ -42,6 +43,17 @@ class SiteAvailability:
     status: str
     length: int = 1
     site_id: int = -1
+
+    @property
+    def start_date(self) -> dt.datetime:
+        return dt.datetime.strptime(self.date, "%Y-%m-%dT00:00:00Z")
+
+    @property
+    def end_date(self) -> dt.datetime:
+        return (
+            dt.datetime.strptime(self.date, "%Y-%m-%dT00:00:00Z") +
+            dt.timedelta(days=self.length)
+        )
 
 
 class Campsite:
@@ -169,11 +181,6 @@ def send_request(url: str, params: Optional[Dict[str, str]]) -> Dict[str, Any]:
     return resp.json()
 
 
-def get_park_availability(park_id, params):
-    url = "{}{}{}".format(BASE_URL, AVAILABILITY_ENDPOINT, park_id)
-    return send_request(url, params)
-
-
 def available_sites_for_window(camp: Campground) -> Dict[str, SiteCount]:
     type_avails: Dict[str, SiteCount] = {}
 
@@ -194,7 +201,9 @@ def available_sites_for_window(camp: Campground) -> Dict[str, SiteCount]:
     return type_avails
 
 
-def class_aggregate_availability(availabilities):
+def aggregate_site_availability(
+    availabilities: List[SiteAvailability]
+) -> List[SiteAvailability]:
     if len(availabilities) == 0:
         return []
 
@@ -211,7 +220,9 @@ def class_aggregate_availability(availabilities):
     return agg_avail
 
 
-def class_filter_availability(availabilities, min_stay):
+def filter_site_availability(
+    availabilities: List[SiteAvailability], min_stay: int
+) -> List[SiteAvailability]:
     return [
         avail
         for avail in availabilities
@@ -219,15 +230,54 @@ def class_filter_availability(availabilities, min_stay):
     ]
 
 
-def available_windows_for_duration(camp, min_stay) -> None:
-    for site_id, availabilities in camp.avails.items():
-        aggs = class_aggregate_availability(camp.avails[site_id])
-        aggs = class_filter_availability(aggs, min_stay)
+def merge_intervals(avail: List[SiteAvailability]) -> List[SiteAvailability]:
+    avail.sort()
+    merged: List[SiteAvailability] = []
+    for higher in avail:
+        if not merged:
+            merged.append(higher)
+            continue
 
-        if len(aggs) > 0:
-            print(f"{site_id} / {camp.sites[site_id].name} / {camp.sites[site_id].site_type}")
-        for a in aggs:
-            print(f"    Starting {a.date[:10]} for {a.length} days")
+        lower = merged[-1]
+        # test for intersection between lower and higher:
+        # we know via sorting that lower[0] <= higher[0]
+        if higher.start_date <= lower.end_date:
+            new_length = (
+                max(lower.end_date, higher.end_date) - lower.start_date
+            ).days
+            # replace by merged interval
+            lower.length = new_length
+        else:
+            merged.append(higher)
+
+    return merged
+
+
+def aggregate_type_availability(
+    type_avails: Dict[str, List[SiteAvailability]]
+) -> Dict[str, List[SiteAvailability]]:
+    for site_type, window_list in type_avails.items():
+        type_avails[site_type] = merge_intervals(window_list)
+
+    return type_avails
+
+
+def available_windows_for_duration(
+    camp: Campground, min_stay: int
+) -> Dict[str, List[SiteAvailability]]:
+
+    type_avails: Dict[str, List[SiteAvailability]] = {}
+    for site_id, availabilities in camp.avails.items():
+        site_type = camp.sites[site_id].site_type
+        if site_type not in type_avails:
+            type_avails[site_type] = []
+
+        aggs = aggregate_site_availability(camp.avails[site_id])
+        aggs = filter_site_availability(aggs, min_stay)
+        type_avails[site_type] += aggs
+
+    type_avails = aggregate_type_availability(type_avails)
+    return type_avails
 
 
 @click.group()
@@ -302,8 +352,21 @@ def search(
         camp = Campground.fetch_campground(camp_id)
         camp.fetch_sites()
         camp.fetch_availability(start_date, end_date)
+        type_avails = available_windows_for_duration(camp, stay_length)
 
-        available_windows_for_duration(camp, stay_length)
+        any_avail = any(len(sa) > 0 for sa in type_avails.values())
+        if any_avail:
+            emoji = SUCCESS_EMOJI
+        else:
+            emoji = FAILURE_EMOJI
+
+        print(f"{emoji} {camp.name} {camp.url}")
+        for site_type, window_list in type_avails.items():
+            if len(window_list) == 0:
+                continue
+            print(f"    {site_type}: ")
+            for window in window_list:
+                print(f"        Starting {window.date[:10]} for {window.length} days")
 
 
 if __name__ == "__main__":

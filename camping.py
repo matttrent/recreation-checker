@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
-import pdb
-import json
 import threading
 import datetime as dt
-import collections
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 
 import click
@@ -80,10 +77,7 @@ class CampgroundAvailability:
     avails: Dict[int, List[SiteAvailability]]
 
     def __init__(
-        self, 
-        response: Dict[str, Any],
-        start_date: dt.datetime,
-        end_date: dt.datetime
+        self, response: Dict[str, Any], start_date: dt.datetime, end_date: dt.datetime
     ) -> None:
         num_days = (end_date - start_date).days
         dates = [end_date - timedelta(days=i) for i in range(1, num_days + 1)]
@@ -93,9 +87,9 @@ class CampgroundAvailability:
         for site_id, value in response.items():
             avails = list(
                 SiteAvailability(
-                    dt.datetime.strptime(date, "%Y-%m-%dT00:00:00Z").date(), 
-                    status, 
-                    site_id=int(site_id)
+                    dt.datetime.strptime(date, "%Y-%m-%dT00:00:00Z").date(),
+                    status,
+                    site_id=int(site_id),
                 )
                 for date, status in value["availabilities"].items()
                 if date in date_strs
@@ -105,8 +99,7 @@ class CampgroundAvailability:
 
     @classmethod
     def aggregate_site_availability(
-        cls,
-        availabilities: List[SiteAvailability]
+        cls, availabilities: List[SiteAvailability]
     ) -> List[SiteAvailability]:
         if len(availabilities) == 0:
             return []
@@ -125,8 +118,7 @@ class CampgroundAvailability:
 
     @classmethod
     def filter_site_availability(
-        cls,
-        availabilities: List[SiteAvailability], min_stay: int
+        cls, availabilities: List[SiteAvailability], min_stay: int
     ) -> List[SiteAvailability]:
         return [
             avail
@@ -135,9 +127,7 @@ class CampgroundAvailability:
         ]
 
     @classmethod
-    def merge_intervals(
-        cls, avail: List[SiteAvailability]
-    ) -> List[SiteAvailability]:
+    def merge_intervals(cls, avail: List[SiteAvailability]) -> List[SiteAvailability]:
         avail.sort()
         merged: List[SiteAvailability] = []
         for higher in avail:
@@ -161,8 +151,7 @@ class CampgroundAvailability:
 
     @classmethod
     def aggregate_type_availability(
-        cls,
-        type_avails: Dict[str, List[SiteAvailability]]
+        cls, type_avails: Dict[str, List[SiteAvailability]]
     ) -> Dict[str, List[SiteAvailability]]:
         for site_type, window_list in type_avails.items():
             type_avails[site_type] = cls.merge_intervals(window_list)
@@ -220,9 +209,7 @@ class Campground:
         url = f"{BASE_URL}{AVAILABILITY_ENDPOINT}{self.id}"
         params = generate_params(start_date, end_date)
         resp = send_request(url, params)
-        self.avails = CampgroundAvailability(
-            resp["campsites"], start_date, end_date
-        )
+        self.avails = CampgroundAvailability(resp["campsites"], start_date, end_date)
 
     def available_sites_for_window(self) -> Dict[str, SiteCount]:
         type_avails: Dict[str, SiteCount] = {}
@@ -256,14 +243,10 @@ class Campground:
             aggs = CampgroundAvailability.aggregate_site_availability(
                 self.avails.avails[site_id]
             )
-            aggs = CampgroundAvailability.filter_site_availability(
-                aggs, min_stay
-            )
+            aggs = CampgroundAvailability.filter_site_availability(aggs, min_stay)
             type_avails[site_type] += aggs
 
-        type_avails = CampgroundAvailability.aggregate_type_availability(
-            type_avails
-        )
+        type_avails = CampgroundAvailability.aggregate_type_availability(type_avails)
         return type_avails
 
 
@@ -272,13 +255,8 @@ def format_date(date_object: dt.datetime) -> str:
     return date_formatted
 
 
-def generate_params(
-    start_date: dt.datetime, end_date: dt.datetime
-) -> Dict[str, str]:
-    params = {
-        "start_date": format_date(start_date),
-        "end_date": format_date(end_date)
-    }
+def generate_params(start_date: dt.datetime, end_date: dt.datetime) -> Dict[str, str]:
+    params = {"start_date": format_date(start_date), "end_date": format_date(end_date)}
     return params
 
 
@@ -381,7 +359,9 @@ def search(
                 continue
             print(f"    {site_type}: ")
             for window in window_list:
-                print(f"        Starting {window.start_date.isoformat()} for {window.length} days")
+                print(
+                    f"        Starting {window.start_date.isoformat()} for {window.length} days"
+                )
 
 
 if __name__ == "__main__":

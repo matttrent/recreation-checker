@@ -3,7 +3,7 @@
 import threading
 import datetime as dt
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from concurrent.futures import ThreadPoolExecutor
 
 import click
@@ -75,10 +75,13 @@ class Campsite:
 
 class CampgroundAvailability:
     avails: Dict[int, List[SiteAvailability]]
+    response: Dict[str, Any]
 
     def __init__(
         self, response: Dict[str, Any], start_date: dt.datetime, end_date: dt.datetime
     ) -> None:
+        self.response = response
+
         num_days = (end_date - start_date).days
         dates = [end_date - timedelta(days=i) for i in range(1, num_days + 1)]
         date_strs = set(format_date(i) for i in dates)
@@ -118,12 +121,15 @@ class CampgroundAvailability:
 
     @classmethod
     def filter_site_availability(
-        cls, availabilities: List[SiteAvailability], min_stay: int
+        cls,
+        availabilities: List[SiteAvailability],
+        min_stay: int = 1,
+        statuses: List[str] = ["Available"],
     ) -> List[SiteAvailability]:
         return [
             avail
             for avail in availabilities
-            if avail.status == "Available" and avail.length >= min_stay
+            if avail.status in statuses and avail.length >= min_stay
         ]
 
     @classmethod
@@ -243,11 +249,34 @@ class Campground:
             aggs = CampgroundAvailability.aggregate_site_availability(
                 self.avails.avails[site_id]
             )
-            aggs = CampgroundAvailability.filter_site_availability(aggs, min_stay)
+            aggs = CampgroundAvailability.filter_site_availability(
+                aggs, min_stay=min_stay
+            )
             type_avails[site_type] += aggs
 
         type_avails = CampgroundAvailability.aggregate_type_availability(type_avails)
         return type_avails
+
+    def next_open(self) -> Dict[str, Optional[dt.date]]:
+
+        type_open: Dict[str, Optional[dt.date]] = {}
+        for site_id, availabilities in self.avails.avails.items():
+
+            site_type = self.sites[site_id].site_type
+            if site_type not in type_open:
+                type_open[site_type] = None
+
+            opens = CampgroundAvailability.filter_site_availability(
+                availabilities, statuses=["Open"]
+            )
+            if len(opens) == 0:
+                continue
+            elif type_open[site_type] is None:
+                type_open[site_type] = opens[0].start_date
+            elif opens[0].start_date < type_open[site_type]:
+                type_open[site_type] = opens[0].start_date
+
+        return type_open
 
 
 def format_date(date_object: dt.datetime) -> str:
@@ -362,6 +391,34 @@ def search(
                 print(
                     f"        Starting {window.start_date.isoformat()} for {window.length} days"
                 )
+
+
+@cli.command(help="Searches a date range for the next potential open reservation date.")
+@click.pass_context
+@click.option(
+    "-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]"
+)
+@click.option(
+    "-e",
+    "--end-date",
+    required=True,
+    type=DATE_TYPE,
+    help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.",
+)
+@click.argument("parks", required=True, type=int, nargs=-1)
+def nextopen(
+    ctx: click.Context, start_date: datetime, end_date: datetime, parks: List[int]
+) -> None:
+
+    for camp_id in parks:
+        camp = Campground.fetch_campground(camp_id)
+        camp.fetch_sites()
+        camp.fetch_availability(start_date, end_date)
+        type_opens = camp.next_open()
+
+        print(f"{camp.name} {camp.url}")
+        for site_type, date in type_opens.items():
+            print(f"    {site_type}: {date}")
 
 
 if __name__ == "__main__":

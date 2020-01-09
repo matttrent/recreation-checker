@@ -267,7 +267,7 @@ class Campground:
                 type_open[site_type] = None
 
             opens = CampgroundAvailability.filter_site_availability(
-                availabilities, statuses=["Open"]
+                availabilities, statuses=["Available", "Open"]
             )
             if len(opens) == 0:
                 continue

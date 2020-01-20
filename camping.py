@@ -3,7 +3,7 @@
 import threading
 import datetime as dt
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from concurrent.futures import ThreadPoolExecutor
 
 import click

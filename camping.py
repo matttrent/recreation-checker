@@ -3,7 +3,7 @@
 import threading
 import datetime as dt
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, cast
 from concurrent.futures import ThreadPoolExecutor
 
 import click
@@ -273,7 +273,7 @@ class Campground:
                 continue
             elif type_open[site_type] is None:
                 type_open[site_type] = opens[0].start_date
-            elif opens[0].start_date < type_open[site_type]:
+            elif opens[0].start_date < cast(dt.date, type_open[site_type]):
                 type_open[site_type] = opens[0].start_date
 
         return type_open

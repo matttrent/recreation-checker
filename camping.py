@@ -388,8 +388,9 @@ def search(
                 continue
             print(f"    {site_type}: ")
             for window in window_list:
+                sd = window.start_date
                 print(
-                    f"        Starting {window.start_date.isoformat()} for {window.length} days"
+                    f"        Starting {sd.isoformat()} ({sd.strftime('%a')}) for {window.length} days"
                 )
 
 
@@ -418,7 +419,10 @@ def nextopen(
 
         print(f"{camp.name} {camp.url}")
         for site_type, date in type_opens.items():
-            print(f"    {site_type}: {date}")
+            weekday = ""
+            if date is not None:
+                weekday = f" ({date.strftime('%a')})"
+            print(f"    {site_type}: {date}{weekday}")
 
 
 if __name__ == "__main__":

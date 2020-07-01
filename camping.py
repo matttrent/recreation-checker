@@ -212,7 +212,9 @@ class Campground:
     def fetch_availability(
         self, start_date: dt.datetime, end_date: dt.datetime
     ) -> None:
-        url = f"{BASE_URL}{AVAILABILITY_ENDPOINT}{self.id}"
+        # NOTE: API has been changed to only include availability for a specific
+        # month, so adding that here.
+        url = f"{BASE_URL}{AVAILABILITY_ENDPOINT}{self.id}/month"
         params = generate_params(start_date, end_date)
         resp = send_request(url, params)
         self.avails = CampgroundAvailability(resp["campsites"], start_date, end_date)
@@ -285,7 +287,13 @@ def format_date(date_object: dt.datetime) -> str:
 
 
 def generate_params(start_date: dt.datetime, end_date: dt.datetime) -> Dict[str, str]:
-    params = {"start_date": format_date(start_date), "end_date": format_date(end_date)}
+    # NOTE: API has been changed to only include availability for a specific
+    # month, so ignoring `end_date` here for the time being.
+    start_date = start_date.replace(day=1)
+    params = {
+        "start_date": format_date(start_date),
+        # "end_date": format_date(end_date)
+    }
     return params
 
 

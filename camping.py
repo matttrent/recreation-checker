@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 
-import threading
 import datetime as dt
-from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional, cast
+import threading
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, cast
 
 import click
 import requests
-from dataclasses import dataclass
 from fake_useragent import UserAgent
-
 
 BASE_URL = "https://www.recreation.gov"
 CAMPGROUND_ENDPOINT = "/api/camps/campgrounds/"

@@ -87,7 +87,7 @@ pip install -r requirements.txt
 This code is formatted using black and isort:
 
 ```shell
-black -l 80 -t py38 camping.py
+black -t py38 camping.py
 isort camping.py
 ```
 

@@ -22,7 +22,7 @@ DATE_TYPE = click.DateTime(formats=[INPUT_DATE_FORMAT])
 SUCCESS_EMOJI = "🏕"
 FAILURE_EMOJI = "❌"
 
-HEADERS = {"User-Agent": UserAgent().random}
+HEADERS: Dict[str, str] = {"User-Agent": UserAgent().random}
 
 THREAD_LOCAL = threading.local()
 
@@ -52,7 +52,7 @@ class Campsite:
     site_type: str
     response: Dict[str, Any]
 
-    def __init__(self, response):
+    def __init__(self, response: Dict[str, Any]):
         self.id = int(response["campsite_id"])
         self.name = response["campsite_name"]
         self.site_status = response["campsite_status"]
@@ -180,7 +180,7 @@ class Campground:
     avails: CampgroundAvailability
     response: Dict[str, Any]
 
-    def __init__(self, response):
+    def __init__(self, response: Dict[str, Any]):
         self.id = int(response["facility_id"])
         self.name = response["facility_name"]
         self.site_ids = [int(site) for site in response["campsites"]]

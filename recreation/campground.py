@@ -1,40 +1,23 @@
-#!/usr/bin/env python3
-
 import datetime as dt
-import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Dict, Iterable, List, Optional, cast
 
-import click
-import requests
 from dateutil import rrule
-from fake_useragent import UserAgent
 
-ItemId = int
-ApiResponse = Dict[str, Any]
+from recreation.core import (
+    BASE_URL,
+    ApiResponse,
+    ItemId,
+    format_date,
+    generate_params,
+    send_request,
+)
 
-BASE_URL = "https://www.recreation.gov"
 CAMPGROUND_ENDPOINT = "/api/camps/campgrounds/"
 CAMPSITE_ENDPOINT = "/api/camps/campsites/"
 AVAILABILITY_ENDPOINT = "/api/camps/availability/campground/"
-
-INPUT_DATE_FORMAT = "%Y-%m-%d"
-DATE_TYPE = click.DateTime(formats=[INPUT_DATE_FORMAT])
-
-SUCCESS_EMOJI = "🏕"
-FAILURE_EMOJI = "❌"
-
-HEADERS: Dict[str, str] = {"User-Agent": UserAgent().random}
-
-THREAD_LOCAL = threading.local()
-
-
-def get_session():
-    if not hasattr(THREAD_LOCAL, "session"):
-        THREAD_LOCAL.session = requests.Session()
-    return THREAD_LOCAL.session
 
 
 @dataclass(order=True)
@@ -260,7 +243,7 @@ class Campground:
     def available_sites_for_window(self) -> Dict[str, SiteCount]:
         type_avails: Dict[str, SiteCount] = {}
 
-        for site_id, availabilities in self.avails.avails.items():
+        for site_id in self.avails.avails.keys():
             site_type = self.sites[site_id].site_type
             if site_type not in type_avails:
                 type_avails[site_type] = SiteCount(self.id, site_id)
@@ -281,7 +264,7 @@ class Campground:
     ) -> Dict[str, List[SiteAvailability]]:
 
         type_avails: Dict[str, List[SiteAvailability]] = {}
-        for site_id, availabilities in self.avails.avails.items():
+        for site_id in self.avails.avails.keys():
             site_type = self.sites[site_id].site_type
             if site_type not in type_avails:
                 type_avails[site_type] = []
@@ -317,157 +300,3 @@ class Campground:
                 type_open[site_type] = opens[0].start_date
 
         return type_open
-
-
-def format_date(date_object: dt.datetime, with_ms: bool = True) -> str:
-    ms = ".000" if with_ms else ""
-    date_formatted = datetime.strftime(date_object, f"%Y-%m-%dT00:00:00{ms}Z")
-    return date_formatted
-
-
-def generate_params(start_date: dt.datetime) -> Dict[str, str]:
-    start_date = start_date.replace(day=1)
-    params = {
-        "start_date": format_date(start_date),
-    }
-    return params
-
-
-def send_request(url: str, params: Optional[Dict[str, str]]) -> ApiResponse:
-    session = get_session()
-    resp = session.get(url, params=params, headers=HEADERS)
-    if resp.status_code != 200:
-        raise RuntimeError(
-            "failedRequest",
-            "ERROR, {} code received from {}: {}".format(
-                resp.status_code, url, resp.text
-            ),
-        )
-    return resp.json()
-
-
-@click.group()
-@click.pass_context
-def cli(ctx):
-    pass
-
-
-@cli.command(help="Checks a specific date range for site availability.")
-@click.option(
-    "-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]"
-)
-@click.option(
-    "-e",
-    "--end-date",
-    required=True,
-    type=DATE_TYPE,
-    help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.",
-)
-@click.argument("parks", required=True, type=int, nargs=-1)
-@click.pass_context
-def check(
-    ctx: click.Context, start_date: datetime, end_date: datetime, parks: List[int]
-) -> None:
-
-    for camp_id in parks:
-        camp = Campground.fetch_campground(camp_id)
-        camp.fetch_sites()
-        camp.fetch_availability(start_date, end_date)
-        type_avails = camp.available_sites_for_window()
-
-        any_avail = any(sc.num_avail > 0 for sc in type_avails.values())
-        if any_avail:
-            emoji = SUCCESS_EMOJI
-        else:
-            emoji = FAILURE_EMOJI
-
-        print(f"{emoji} {camp.name} {camp.url}")
-        for site_type, site_count in type_avails.items():
-            print(
-                f"    {site_type}: {site_count.num_avail} / {site_count.total_sites} available"
-            )
-
-
-@cli.command(
-    help="Searches a date range for all availabilities longer than the specified length."
-)
-@click.pass_context
-@click.option(
-    "-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]"
-)
-@click.option(
-    "-e",
-    "--end-date",
-    required=True,
-    type=DATE_TYPE,
-    help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.",
-)
-@click.option(
-    "-l", "--stay-length", type=int, default=1, help="Minimum stay length to consider."
-)
-@click.argument("parks", required=True, type=int, nargs=-1)
-def search(
-    ctx: click.Context,
-    start_date: datetime,
-    end_date: datetime,
-    stay_length: int,
-    parks: List[int],
-) -> None:
-
-    for camp_id in parks:
-        camp = Campground.fetch_campground(camp_id)
-        camp.fetch_sites()
-        camp.fetch_availability(start_date, end_date)
-        type_avails = camp.available_windows_for_duration(stay_length)
-
-        any_avail = any(len(sa) > 0 for sa in type_avails.values())
-        if any_avail:
-            emoji = SUCCESS_EMOJI
-        else:
-            emoji = FAILURE_EMOJI
-
-        print(f"{emoji} {camp.name} {camp.url}")
-        for site_type, window_list in type_avails.items():
-            if len(window_list) == 0:
-                continue
-            print(f"    {site_type}: ")
-            for window in window_list:
-                sd = window.start_date
-                print(
-                    f"        Starting {sd.isoformat()} ({sd.strftime('%a')}) for {window.length} days"
-                )
-
-
-@cli.command(help="Searches a date range for the next potential open reservation date.")
-@click.pass_context
-@click.option(
-    "-s", "--start-date", required=True, type=DATE_TYPE, help="Start date [YYYY-MM-DD]"
-)
-@click.option(
-    "-e",
-    "--end-date",
-    required=True,
-    type=DATE_TYPE,
-    help="End date [YYYY-MM-DD]. You expect to leave this day, not stay the night.",
-)
-@click.argument("parks", required=True, type=int, nargs=-1)
-def nextopen(
-    ctx: click.Context, start_date: datetime, end_date: datetime, parks: List[int]
-) -> None:
-
-    for camp_id in parks:
-        camp = Campground.fetch_campground(camp_id)
-        camp.fetch_sites()
-        camp.fetch_availability(start_date, end_date)
-        type_opens = camp.next_open()
-
-        print(f"{camp.name} {camp.url}")
-        for site_type, date in type_opens.items():
-            weekday = ""
-            if date is not None:
-                weekday = f" ({date.strftime('%a')})"
-            print(f"    {site_type}: {date}{weekday}")
-
-
-if __name__ == "__main__":
-    cli(obj={})

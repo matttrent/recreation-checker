@@ -1,13 +1,12 @@
 import random
 import sys
 import time
-
 from hashlib import md5
+
+import twitter
 
 from camping import SUCCESS_EMOJI
 from twitter_credentials import twitter_credentials as tc
-
-import twitter
 
 MAX_TWEET_LENGTH = 279
 DELAY_FILE_TEMPLATE = "next_{}.txt"
@@ -28,6 +27,7 @@ def create_tweet(tweet):
     print()
     print(tweet)
 
+
 # Janky simple argument parsing.
 if len(sys.argv) != 2:
     print("Please provide the user you want to tweet at!")
@@ -45,9 +45,9 @@ try:
 except:
     call_time = 0
 
-if call_time + random.randint(DELAY_TIME-30, DELAY_TIME+30) > int(time.time()):
-   print("It is too soon to tweet again") 
-   sys.exit(0)
+if call_time + random.randint(DELAY_TIME - 30, DELAY_TIME + 30) > int(time.time()):
+    print("It is too soon to tweet again")
+    sys.exit(0)
 
 
 if "Something went wrong" in first_line:

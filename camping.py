@@ -96,7 +96,6 @@ class CampgroundAvailability:
         for response in self.responses:
             for site_id, value in response.items():
                 sid = int(site_id)
-                # print(sid, value)
                 avails = list(
                     SiteAvailability(
                         dt.datetime.strptime(date, "%Y-%m-%dT00:00:00Z").date(),

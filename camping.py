@@ -5,11 +5,15 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Iterable, List, Optional, cast
 
 import click
 import requests
+from dateutil import rrule
 from fake_useragent import UserAgent
+
+ItemId = int
+ApiResponse = Dict[str, Any]
 
 BASE_URL = "https://www.recreation.gov"
 CAMPGROUND_ENDPOINT = "/api/camps/campgrounds/"
@@ -38,7 +42,7 @@ class SiteAvailability:
     start_date: dt.date
     status: str
     length: int = 1
-    site_id: int = -1
+    site_id: ItemId = -1
 
     @property
     def end_date(self) -> dt.date:
@@ -46,13 +50,13 @@ class SiteAvailability:
 
 
 class Campsite:
-    id: int
+    id: ItemId
     name: str
     site_status: str
     site_type: str
-    response: Dict[str, Any]
+    response: ApiResponse
 
-    def __init__(self, response: Dict[str, Any]):
+    def __init__(self, response: ApiResponse):
         self.id = int(response["campsite_id"])
         self.name = response["campsite_name"]
         self.site_status = response["campsite_status"]
@@ -64,7 +68,7 @@ class Campsite:
         return f"https://www.recreation.gov/camping/campsites/{self.id}"
 
     @staticmethod
-    def fetch_campsite(site_id: int) -> "Campsite":
+    def fetch_campsite(site_id: ItemId) -> "Campsite":
         url = f"{BASE_URL}{CAMPSITE_ENDPOINT}{site_id}"
         resp = send_request(url, None)
         site = Campsite(resp["campsite"])
@@ -73,31 +77,42 @@ class Campsite:
 
 
 class CampgroundAvailability:
-    avails: Dict[int, List[SiteAvailability]]
-    response: Dict[str, Any]
+    avails: Dict[ItemId, List[SiteAvailability]]
+    responses: List[ApiResponse]
 
     def __init__(
-        self, response: Dict[str, Any], start_date: dt.datetime, end_date: dt.datetime
+        self,
+        responses: List[ApiResponse],
+        start_date: dt.datetime,
+        end_date: dt.datetime,
     ) -> None:
-        self.response = response
+        self.responses = responses
 
         num_days = (end_date - start_date).days
         dates = [end_date - timedelta(days=i) for i in range(1, num_days + 1)]
-        date_strs = set(format_date(i) for i in dates)
+        date_strs = set(format_date(i, with_ms=False) for i in dates)
 
         self.avails = {}
-        for site_id, value in response.items():
-            avails = list(
-                SiteAvailability(
-                    dt.datetime.strptime(date, "%Y-%m-%dT00:00:00Z").date(),
-                    status,
-                    site_id=int(site_id),
+        for response in self.responses:
+            for site_id, value in response.items():
+                sid = int(site_id)
+                # print(sid, value)
+                avails = list(
+                    SiteAvailability(
+                        dt.datetime.strptime(date, "%Y-%m-%dT00:00:00Z").date(),
+                        status,
+                        site_id=sid,
+                    )
+                    for date, status in value["availabilities"].items()
+                    # TODO(mtrent): matching date to date_strs is fragile to the
+                    # different date string formats. compare datetimes instead.
+                    if date in date_strs
                 )
-                for date, status in value["availabilities"].items()
-                if date in date_strs
-            )
-            avails.sort()
-            self.avails[int(site_id)] = avails
+
+                avails.sort()
+                if sid not in self.avails:
+                    self.avails[sid] = []
+                self.avails[sid].extend(avails)
 
     @classmethod
     def aggregate_site_availability(
@@ -166,21 +181,21 @@ class CampgroundAvailability:
 
 @dataclass(order=True)
 class SiteCount:
-    camp_id: int
-    site_id: int
+    camp_id: ItemId
+    site_id: ItemId
     num_avail: int = 0
     total_sites: int = 0
 
 
 class Campground:
-    id: int
+    id: ItemId
     name: str
-    site_ids: List[int]
-    sites: Dict[int, Campsite]
+    site_ids: List[ItemId]
+    sites: Dict[ItemId, Campsite]
     avails: CampgroundAvailability
     response: Dict[str, Any]
 
-    def __init__(self, response: Dict[str, Any]):
+    def __init__(self, response: ApiResponse):
         self.id = int(response["facility_id"])
         self.name = response["facility_name"]
         self.site_ids = [int(site) for site in response["campsites"]]
@@ -195,7 +210,7 @@ class Campground:
         return f"{self.__class__.__name__}({self.id}, {self.name})"
 
     @staticmethod
-    def fetch_campground(camp_id: int) -> "Campground":
+    def fetch_campground(camp_id: ItemId) -> "Campground":
         url = f"{BASE_URL}{CAMPGROUND_ENDPOINT}{camp_id}"
         resp = send_request(url, {})
         camp = Campground(resp["campground"])
@@ -211,12 +226,37 @@ class Campground:
     def fetch_availability(
         self, start_date: dt.datetime, end_date: dt.datetime
     ) -> None:
-        # NOTE: API has been changed to only include availability for a specific
-        # month, so adding that here.
+
+        today = dt.date.today()
+        start_date = max(start_date, dt.datetime(today.year, today.month, today.day))
+        start_month = start_date.replace(day=1)
+        end_month = end_date.replace(day=1)
+        n_months = (
+            (end_month.year - start_month.year) * 12
+            + (end_month.month - start_month.month)
+            + 1
+        )
+        months: Iterable[dt.datetime] = rrule.rrule(
+            freq=rrule.MONTHLY, dtstart=start_month, count=n_months
+        )
+
         url = f"{BASE_URL}{AVAILABILITY_ENDPOINT}{self.id}/month"
-        params = generate_params(start_date, end_date)
-        resp = send_request(url, params)
-        self.avails = CampgroundAvailability(resp["campsites"], start_date, end_date)
+
+        resps = []
+        for month in months:
+            params = generate_params(month)
+            resp = send_request(url, params)
+            resps.append(resp["campsites"])
+
+        # def fetch_helper(month: dt.datetime) -> ApiResponse:
+        #     params = generate_params(month)
+        #     resp = send_request(url, params)
+        #     return resp["campsites"]
+
+        # with ThreadPoolExecutor(max_workers=10) as executor:
+        #     resps = executor.map(fetch_helper, months)
+
+        self.avails = CampgroundAvailability(resps, start_date, end_date)
 
     def available_sites_for_window(self) -> Dict[str, SiteCount]:
         type_avails: Dict[str, SiteCount] = {}
@@ -280,23 +320,21 @@ class Campground:
         return type_open
 
 
-def format_date(date_object: dt.datetime) -> str:
-    date_formatted = datetime.strftime(date_object, "%Y-%m-%dT00:00:00Z")
+def format_date(date_object: dt.datetime, with_ms: bool = True) -> str:
+    ms = ".000" if with_ms else ""
+    date_formatted = datetime.strftime(date_object, f"%Y-%m-%dT00:00:00{ms}Z")
     return date_formatted
 
 
-def generate_params(start_date: dt.datetime, end_date: dt.datetime) -> Dict[str, str]:
-    # NOTE: API has been changed to only include availability for a specific
-    # month, so ignoring `end_date` here for the time being.
+def generate_params(start_date: dt.datetime) -> Dict[str, str]:
     start_date = start_date.replace(day=1)
     params = {
         "start_date": format_date(start_date),
-        # "end_date": format_date(end_date)
     }
     return params
 
 
-def send_request(url: str, params: Optional[Dict[str, str]]) -> Dict[str, Any]:
+def send_request(url: str, params: Optional[Dict[str, str]]) -> ApiResponse:
     session = get_session()
     resp = session.get(url, params=params, headers=HEADERS)
     if resp.status_code != 200:

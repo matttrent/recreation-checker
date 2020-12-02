@@ -199,7 +199,7 @@ class Campground:
         return camp
 
     def fetch_sites(self) -> None:
-        with ThreadPoolExecutor(max_workers=100) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             self.sites = {
                 site.id: site
                 for site in executor.map(Campsite.fetch_campsite, self.site_ids)
@@ -224,19 +224,19 @@ class Campground:
 
         url = f"{BASE_URL}{AVAILABILITY_ENDPOINT}{self.id}/month"
 
-        resps = []
-        for month in months:
-            params = generate_params(month)
-            resp = send_request(url, params)
-            resps.append(resp["campsites"])
-
-        # def fetch_helper(month: dt.datetime) -> ApiResponse:
+        # resps = []
+        # for month in months:
         #     params = generate_params(month)
         #     resp = send_request(url, params)
-        #     return resp["campsites"]
+        #     resps.append(resp["campsites"])
 
-        # with ThreadPoolExecutor(max_workers=10) as executor:
-        #     resps = executor.map(fetch_helper, months)
+        def fetch_helper(month: dt.datetime) -> ApiResponse:
+            params = generate_params(month)
+            resp = send_request(url, params)
+            return resp["campsites"]
+
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            resps = list(executor.map(fetch_helper, months))
 
         self.avails = CampgroundAvailability(resps, start_date, end_date)
 

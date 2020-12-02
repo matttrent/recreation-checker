@@ -2,6 +2,7 @@
 
 import datetime as dt
 from typing import List
+from concurrent.futures import ThreadPoolExecutor
 
 import click
 
@@ -12,6 +13,22 @@ DATE_TYPE = click.DateTime(formats=[INPUT_DATE_FORMAT])
 
 SUCCESS_EMOJI = "🏕"
 FAILURE_EMOJI = "❌"
+
+
+def fetch_camps(
+    camp_ids: List[int], start_date: dt.datetime, end_date: dt.datetime
+) -> List[Campground]:
+
+    def fetch_helper(camp_id: int) -> Campground:
+        camp = Campground.fetch_campground(camp_id)
+        camp.fetch_sites()
+        camp.fetch_availability(start_date, end_date)
+        return camp
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        camps = list(executor.map(fetch_helper, camp_ids))
+
+    return camps
 
 
 @click.group()
@@ -37,10 +54,9 @@ def check(
     ctx: click.Context, start_date: dt.datetime, end_date: dt.datetime, parks: List[int]
 ) -> None:
 
-    for camp_id in parks:
-        camp = Campground.fetch_campground(camp_id)
-        camp.fetch_sites()
-        camp.fetch_availability(start_date, end_date)
+    camps = fetch_camps(parks, start_date, end_date)
+
+    for camp in camps:
         type_avails = camp.available_sites_for_window()
 
         any_avail = any(sc.num_avail > 0 for sc in type_avails.values())
@@ -82,10 +98,9 @@ def search(
     parks: List[int],
 ) -> None:
 
-    for camp_id in parks:
-        camp = Campground.fetch_campground(camp_id)
-        camp.fetch_sites()
-        camp.fetch_availability(start_date, end_date)
+    camps = fetch_camps(parks, start_date, end_date)
+
+    for camp in camps:
         type_avails = camp.available_windows_for_duration(stay_length)
 
         any_avail = any(len(sa) > 0 for sa in type_avails.values())
@@ -123,10 +138,9 @@ def nextopen(
     ctx: click.Context, start_date: dt.datetime, end_date: dt.datetime, parks: List[int]
 ) -> None:
 
-    for camp_id in parks:
-        camp = Campground.fetch_campground(camp_id)
-        camp.fetch_sites()
-        camp.fetch_availability(start_date, end_date)
+    camps = fetch_camps(parks, start_date, end_date)
+
+    for camp in camps:
         type_opens = camp.next_open()
 
         print(f"{camp.name} {camp.url}")

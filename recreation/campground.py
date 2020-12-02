@@ -55,7 +55,6 @@ class Campsite:
         url = f"{BASE_URL}{CAMPSITE_ENDPOINT}{site_id}"
         resp = send_request(url, None)
         site = Campsite(resp["campsite"])
-        site.response = resp["campsite"]
         return site
 
 

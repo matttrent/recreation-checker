@@ -21,10 +21,11 @@ pyflakes==2.1.1
 pyparsing==2.4.2
 pytest==5.3.5
 python-dateutil==2.8.1
-requests==2.23.0
+requests==2.25.1
+responses==0.13.3
 six==1.14.0
 typed-ast==1.4.1
 typing-extensions==3.7.4.1
-urllib3==1.25.8
+urllib3==1.26.4
 wcwidth==0.1.8
 zipp==0.6.0

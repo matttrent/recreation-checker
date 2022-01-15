@@ -2,7 +2,7 @@ import datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Iterable, List, Optional, cast
+from typing import Any, Iterable, Optional, cast
 
 from dateutil import rrule
 
@@ -59,12 +59,12 @@ class Campsite:
 
 
 class CampgroundAvailability:
-    avails: Dict[ItemId, List[SiteAvailability]]
-    responses: List[ApiResponse]
+    avails: dict[ItemId, list[SiteAvailability]]
+    responses: list[ApiResponse]
 
     def __init__(
         self,
-        responses: List[ApiResponse],
+        responses: list[ApiResponse],
         start_date: dt.datetime,
         end_date: dt.datetime,
     ) -> None:
@@ -97,8 +97,8 @@ class CampgroundAvailability:
 
     @classmethod
     def aggregate_site_availability(
-        cls, availabilities: List[SiteAvailability]
-    ) -> List[SiteAvailability]:
+        cls, availabilities: list[SiteAvailability]
+    ) -> list[SiteAvailability]:
         if len(availabilities) == 0:
             return []
 
@@ -117,10 +117,10 @@ class CampgroundAvailability:
     @classmethod
     def filter_site_availability(
         cls,
-        availabilities: List[SiteAvailability],
+        availabilities: list[SiteAvailability],
         min_stay: int = 1,
-        statuses: List[str] = ["Available"],
-    ) -> List[SiteAvailability]:
+        statuses: list[str] = ["Available"],
+    ) -> list[SiteAvailability]:
         return [
             avail
             for avail in availabilities
@@ -128,9 +128,9 @@ class CampgroundAvailability:
         ]
 
     @classmethod
-    def merge_intervals(cls, avail: List[SiteAvailability]) -> List[SiteAvailability]:
+    def merge_intervals(cls, avail: list[SiteAvailability]) -> list[SiteAvailability]:
         avail.sort()
-        merged: List[SiteAvailability] = []
+        merged: list[SiteAvailability] = []
         for higher in avail:
             if not merged:
                 merged.append(higher)
@@ -152,8 +152,8 @@ class CampgroundAvailability:
 
     @classmethod
     def aggregate_type_availability(
-        cls, type_avails: Dict[str, List[SiteAvailability]]
-    ) -> Dict[str, List[SiteAvailability]]:
+        cls, type_avails: dict[str, list[SiteAvailability]]
+    ) -> dict[str, list[SiteAvailability]]:
         for site_type, window_list in type_avails.items():
             type_avails[site_type] = cls.merge_intervals(window_list)
 
@@ -171,10 +171,10 @@ class SiteCount:
 class Campground:
     id: ItemId
     name: str
-    site_ids: List[ItemId]
-    sites: Dict[ItemId, Campsite]
+    site_ids: list[ItemId]
+    sites: dict[ItemId, Campsite]
     avails: CampgroundAvailability
-    response: Dict[str, Any]
+    response: dict[str, Any]
 
     def __init__(self, response: ApiResponse):
         self.id = int(response["facility_id"])
@@ -239,8 +239,8 @@ class Campground:
 
         self.avails = CampgroundAvailability(resps, start_date, end_date)
 
-    def available_sites_for_window(self) -> Dict[str, SiteCount]:
-        type_avails: Dict[str, SiteCount] = {}
+    def available_sites_for_window(self) -> dict[str, SiteCount]:
+        type_avails: dict[str, SiteCount] = {}
 
         for site_id in self.avails.avails.keys():
             site_type = self.sites[site_id].site_type
@@ -260,9 +260,9 @@ class Campground:
 
     def available_windows_for_duration(
         self, min_stay: int
-    ) -> Dict[str, List[SiteAvailability]]:
+    ) -> dict[str, list[SiteAvailability]]:
 
-        type_avails: Dict[str, List[SiteAvailability]] = {}
+        type_avails: dict[str, list[SiteAvailability]] = {}
         for site_id in self.avails.avails.keys():
             site_type = self.sites[site_id].site_type
             if site_type not in type_avails:
@@ -279,9 +279,9 @@ class Campground:
         type_avails = CampgroundAvailability.aggregate_type_availability(type_avails)
         return type_avails
 
-    def next_open(self) -> Dict[str, Optional[dt.date]]:
+    def next_open(self) -> dict[str, Optional[dt.date]]:
 
-        type_open: Dict[str, Optional[dt.date]] = {}
+        type_open: dict[str, Optional[dt.date]] = {}
         for site_id, availabilities in self.avails.avails.items():
 
             site_type = self.sites[site_id].site_type

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import datetime as dt
-from typing import List
 from concurrent.futures import ThreadPoolExecutor
 
 import click
@@ -16,8 +15,8 @@ FAILURE_EMOJI = "❌"
 
 
 def fetch_camps(
-    camp_ids: List[int], start_date: dt.datetime, end_date: dt.datetime
-) -> List[Campground]:
+    camp_ids: list[int], start_date: dt.datetime, end_date: dt.datetime
+) -> list[Campground]:
 
     def fetch_helper(camp_id: int) -> Campground:
         camp = Campground.fetch_campground(camp_id)
@@ -51,7 +50,7 @@ def cli(ctx):
 @click.argument("parks", required=True, type=int, nargs=-1)
 @click.pass_context
 def check(
-    ctx: click.Context, start_date: dt.datetime, end_date: dt.datetime, parks: List[int]
+    ctx: click.Context, start_date: dt.datetime, end_date: dt.datetime, parks: list[int]
 ) -> None:
 
     camps = fetch_camps(parks, start_date, end_date)
@@ -95,7 +94,7 @@ def search(
     start_date: dt.datetime,
     end_date: dt.datetime,
     stay_length: int,
-    parks: List[int],
+    parks: list[int],
 ) -> None:
 
     camps = fetch_camps(parks, start_date, end_date)
@@ -135,7 +134,7 @@ def search(
 )
 @click.argument("parks", required=True, type=int, nargs=-1)
 def nextopen(
-    ctx: click.Context, start_date: dt.datetime, end_date: dt.datetime, parks: List[int]
+    ctx: click.Context, start_date: dt.datetime, end_date: dt.datetime, parks: list[int]
 ) -> None:
 
     camps = fetch_camps(parks, start_date, end_date)

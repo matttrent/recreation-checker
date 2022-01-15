@@ -1,16 +1,16 @@
 import datetime as dt
 import threading
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import requests
 from fake_useragent import UserAgent
 
 ItemId = int
-ApiResponse = Dict[str, Any]
+ApiResponse = dict[str, Any]
 
 BASE_URL = "https://www.recreation.gov"
 
-HEADERS: Dict[str, str] = {"User-Agent": UserAgent().random}
+HEADERS: dict[str, str] = {"User-Agent": UserAgent().random}
 
 THREAD_LOCAL = threading.local()
 
@@ -27,7 +27,7 @@ def format_date(date_object: dt.datetime, with_ms: bool = True) -> str:
     return date_formatted
 
 
-def generate_params(start_date: dt.datetime) -> Dict[str, str]:
+def generate_params(start_date: dt.datetime) -> dict[str, str]:
     start_date = start_date.replace(day=1)
     params = {
         "start_date": format_date(start_date),
@@ -35,7 +35,7 @@ def generate_params(start_date: dt.datetime) -> Dict[str, str]:
     return params
 
 
-def send_request(url: str, params: Optional[Dict[str, str]]) -> ApiResponse:
+def send_request(url: str, params: Optional[dict[str, str]]) -> ApiResponse:
     session = get_session()
     resp = session.get(url, params=params, headers=HEADERS)
     if resp.status_code != 200:

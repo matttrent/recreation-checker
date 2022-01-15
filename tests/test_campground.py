@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Any, Dict
+from typing import Any
 
 import responses
 
@@ -14,7 +14,7 @@ def test_site_availability() -> None:
     assert sa.end_date == stop
 
 
-def validate_campsite(cs: campground.Campsite, resp: Dict[str, Any]) -> None:
+def validate_campsite(cs: campground.Campsite, resp: dict[str, Any]) -> None:
     site_id = int(resp["campsite_id"])
     assert cs.id == site_id
     assert cs.name == resp["campsite_name"]
@@ -63,7 +63,7 @@ def test_campsite_fetch() -> None:
 
 
 def validate_campground(
-    cg: campground.Campground, resp: Dict[str, Any], sites: Dict[str, Any] = {}
+    cg: campground.Campground, resp: dict[str, Any], sites: dict[str, Any] = {}
 ) -> None:
     fac_id = int(resp["facility_id"])
     assert cg.id == fac_id

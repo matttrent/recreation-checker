@@ -1,7 +1,7 @@
 import datetime as dt
-import responses
-
 from typing import Any, Dict
+
+import responses
 
 from recreation import campground
 
@@ -89,13 +89,15 @@ def test_campground_init() -> None:
 @responses.activate
 def test_campground_fetch() -> None:
     fac_id = 234149
-    resp = {"campground": {
-        "facility_id": "234149",
-        "facility_latitude": 42.943699,
-        "facility_longitude": -122.8547,
-        "facility_name": "PICKETT BUTTE LOOKOUT",
-        "campsites": ["82697"],
-    }}
+    resp = {
+        "campground": {
+            "facility_id": "234149",
+            "facility_latitude": 42.943699,
+            "facility_longitude": -122.8547,
+            "facility_name": "PICKETT BUTTE LOOKOUT",
+            "campsites": ["82697"],
+        }
+    }
 
     responses.add(
         responses.GET,

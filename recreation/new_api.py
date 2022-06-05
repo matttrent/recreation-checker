@@ -1,4 +1,5 @@
 import datetime as dt
+import enum
 import itertools
 from sre_constants import OP_LOCALE_IGNORE
 from time import timezone
@@ -26,6 +27,34 @@ from pydantic import BaseModel, ValidationError, Extra
 IntOrStr = Union[int, str]
 
 
+class FacilityType(str, enum.Enum):
+    standard = "STANDARD"
+
+
+class CampsiteType(str, enum.Enum):
+    management = "MANAGEMENT"
+    rv_nonelectric = "RV NONELECTRIC"
+    standard_nonelectric = "STANDARD NONELECTRIC"
+    tent_only_nonelectric = "TENT ONLY NONELECTRIC"
+
+
+class CampsiteStatus(str, enum.Enum):
+    not_available = "Not Available"
+    not_reservable_management = "Not Reservable Management"
+    open = "Open"
+
+
+class CampsiteReserveType(str, enum.Enum):
+    non_site_specific = "Non Site-Specific"
+    site_specific = "Site-Specific"
+
+
+class CampsiteAvailabilityStatus(str, enum.Enum):
+    not_available = "Not Available"
+    not_reservable_management = "Not Reservable Management"
+    reserved = "Reserved"
+
+
 class RGApiCampground(BaseModel):
     campsites: List[str] 
     facility_email:  Optional[str]
@@ -35,7 +64,7 @@ class RGApiCampground(BaseModel):
     facility_map_url:  Optional[str]
     facility_name: str
     facility_phone: str
-    facility_type: str
+    facility_type: FacilityType
     parent_asset_id: str
 
     class Config:
@@ -54,17 +83,17 @@ class RGApiCampsite(BaseModel):
     campsite_longitude: float
     campsite_name: str
     campsite_reserve_type: str
-    campsite_status: str
-    campsite_type: str
+    campsite_status: CampsiteStatus
+    campsite_type: CampsiteType
     facility_id: str
     loop: Optional[str]
-    parent_site_id: str
+    parent_site_id: Optional[str]
 
     class Config:
         extra = Extra.ignore
 
     def __repr__(self) -> str:
-        return f"{self.__repr_name__()}(id={self.campsite_id}, name={self.campsite_name})"
+        return f"{self.__repr_name__()}(id={self.campsite_id}, name={self.campsite_name}, type={self.campsite_type}, status={self.campsite_status})"
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -124,9 +153,10 @@ class RGApiPermit(BaseModel):
 
 
 class CampsiteAvailability(BaseModel):
-    availabilities: Dict[dt.datetime, str]
+    availabilities: Dict[dt.datetime, CampsiteAvailabilityStatus]
     campsite_id: str
-    campsite_reserve_type: str
+    campsite_reserve_type: CampsiteReserveType
+    campsite_type: CampsiteType
     loop: str
     max_num_people: int
     min_num_people: int
@@ -154,8 +184,12 @@ class RGApiCampgroundAvailability(BaseModel):
             list(campsite.availabilities.keys())
             for campsite in self.campsites.values()
         ))
-        min_date = min(dates).date().isoformat()
-        max_date = max(dates).date().isoformat()
+
+        min_date = None
+        max_date = None
+        if len(dates) > 0:
+            min_date = min(dates).date().isoformat()
+            max_date = max(dates).date().isoformat()
         return f"{self.__repr_name__()}(start={min_date}, end={max_date})"
 
     def __str__(self) -> str:
@@ -198,8 +232,12 @@ class RGApiPermitAvailability(BaseModel):
             list(avail.date_availability.keys())
             for avail in self.availability.values()
         ))
-        min_date = min(dates).date().isoformat()
-        max_date = max(dates).date().isoformat()
+
+        min_date = None
+        max_date = None
+        if len(dates) > 0:
+            min_date = min(dates).date().isoformat()
+            max_date = max(dates).date().isoformat()
         return f"{self.__repr_name__()}(id={self.permit_id}, start={min_date}, end={max_date})"
 
     def __str__(self) -> str:
@@ -272,12 +310,15 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.campground.format(id=campground_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
+        print("facility_type", resp["campground"]["facility_type"])
         return resp["campground"]
 
     def get_campsite(self, campsite_id: int) -> RGApiCampsite:
         url = RecreationGovEndpoint.campsite.format(id=campsite_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
+        print("campsite_status", resp["campsite"]["campsite_status"])
+        print("campsite_type", resp["campsite"]["campsite_type"])
         return resp["campsite"]
 
     def get_permit(self, permit_id: int) -> RGApiPermit:
@@ -301,7 +342,21 @@ class RecreationGovClient(APIClient):
         params = {
             "start_date": self._format_date(start_date)
         }
-        return self.get(url, headers=headers, params=params)
+        resp = self.get(url, headers=headers, params=params)
+
+        campsite_reserve_types = set(
+            campsite["campsite_reserve_type"]
+            for campsite in resp["campsites"].values()
+        )
+        print("campsite reserve types", campsite_reserve_types)
+
+        campsite_types = set(
+            campsite["campsite_type"]
+            for campsite in resp["campsites"].values()
+        )
+        print("campsite types", campsite_types)
+
+        return resp
 
     def get_permit_availability(
         self, permit_id: int, start_date: dt.date

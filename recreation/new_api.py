@@ -424,3 +424,71 @@ class RecreationGovClient(APIClient):
             "start_date": self._format_date(start_date)
         }
         return self.get(url, headers=headers, params=params) 
+
+
+
+@dataclass
+class BaseAvailability:
+    id: str
+    date: dt.date
+
+
+class PermitAvailability(BaseAvailability):
+    is_walkup: bool
+    remaining: int
+    total: int
+
+
+class AvailabilityList:
+
+    availability: list[BaseAvailability]
+
+    def __init__(self, availability: list[BaseAvailability]) -> None:
+        self.availability = availability
+
+    @staticmethod
+    def from_permit_inyo(availability_months: list[RGApiPermitInyoAvailability]) -> "AvailabilityList":
+
+        seen = set()
+        availability = []
+
+        for month in availability_months:
+
+
+
+class Permit:
+
+    api_permit: RGApiPermit
+
+    entrances: dict[str, RgApiPermitEntrance]
+
+    def __init__(self, api_permit: RGApiPermit):
+        self.api_permit = api_permit
+
+        self.entrances = {
+            entry.id : entry
+            for entry in self.api_permit.entrance_list
+        }
+
+    @staticmethod
+    def fetch(permit_id: IntOrStr) -> "Permit":
+        client = RecreationGovClient()
+        permit = client.get_permit(permit_id)
+        return Permit(permit)
+
+    def __getattr__(self, attr: str):
+        return self.api_permit.__getattribute__(attr)
+
+    def division_for_code(self, code: str) -> RgApiPermitDivision:
+        for divis in self.divisions.values():
+            if divis.code == code:
+                return divis
+
+        raise IndexError(f"Division with {code} not found")
+
+    def division_for_name(self, name: str) -> RgApiPermitDivision:
+        for divis in self.divisions.values():
+            if divis.name == name:
+                return divis
+
+        raise IndexError(f"Division with {name} not found")

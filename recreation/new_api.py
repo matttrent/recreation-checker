@@ -55,7 +55,7 @@ class CampsiteAvailabilityStatus(str, enum.Enum):
 
 
 class RGApiCampground(BaseModel):
-    campsites: List[str] 
+    campsite_ids: List[str] = Field(list(), alias="campsites")
     facility_email:  Optional[str]
     facility_id: str
     facility_latitude:  float
@@ -99,13 +99,19 @@ class RGApiCampsite(BaseModel):
 
 
 class RgApiPermitDivision(BaseModel):
+    code: str
     district: str
-    # description: str
-    entry_ids = list[str]
-    exit_ids = list[str]
+    description: str
+    entry_ids: list[str]
+    exit_ids: list[str]
     id: str
+    latitude: float
+    longitude: float
     name: str
     type: str
+
+    # _entries: dict[str, "RgApiPermitEntrance"] = PrivateAttr()
+    # _exits: dict[str, "RgApiPermitEntrance"] = PrivateAttr()
 
     class Config:
         extra = Extra.ignore
@@ -116,6 +122,24 @@ class RgApiPermitDivision(BaseModel):
     def __str__(self) -> str:
         return self.__repr__()
 
+    # @property
+    # def entries(self) -> dict[str, "RgApiPermitEntrance"]:
+    #     return self._entries
+
+    # @property
+    # def exits(self) -> dict[str, "RgApiPermitEntrance"]:
+    #     return self._exits
+
+    # def set_entrances(self, entrances: dict[str, "RgApiPermitEntrance"]) -> None:
+    #     self._entries = {
+    #         entry: entrances[entry]
+    #         for entry in self.entry_ids
+    #     }
+    #     self._exits = {
+    #         _exit: entrances[_exit]
+    #         for _exit in self.exit_ids
+    #     }
+
 
 class RgApiPermitEntrance(BaseModel):
     has_parking: bool
@@ -124,6 +148,9 @@ class RgApiPermitEntrance(BaseModel):
     is_entry: bool
     is_exit: bool
     is_issue_station: bool
+    latitude: float
+    longitude: float
+    town: str
 
     class Config:
         extra = Extra.ignore
@@ -138,8 +165,22 @@ class RgApiPermitEntrance(BaseModel):
 class RGApiPermit(BaseModel):
     id: str
     name: str
-    divisions: dict[int, PermitDivision]
-    entrances: list[PermitEntrance]
+    divisions: dict[str, RgApiPermitDivision]
+    entrance_list: list[RgApiPermitEntrance] = Field(list(), alias="entrances")
+
+    _entrances: dict[str, RgApiPermitEntrance] = PrivateAttr()
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        self._entrances = {
+            entry.id : entry
+            for entry in self.entrance_list
+        }
+
+        # for divis in self.divisions.values():
+        #     divis.set_entrances(self._entrances)
+
 
     class Config:
         extra = Extra.ignore
@@ -149,6 +190,10 @@ class RGApiPermit(BaseModel):
 
     def __str__(self) -> str:
         return self.__repr__()
+
+    @property
+    def entrances(self) -> dict[str, RgApiPermitEntrance]:
+        return self._entrances
 
 
 class RgApiCampsiteAvailability(BaseModel):

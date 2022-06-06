@@ -1,8 +1,7 @@
+from dataclasses import dataclass
 import datetime as dt
 import enum
 import itertools
-from sre_constants import OP_LOCALE_IGNORE
-from time import timezone
 from typing import Dict, List, Optional, Any, Union
 
 from apiclient import (    APIClient,
@@ -21,7 +20,7 @@ from apiclient_pydantic import (
 
 from fake_useragent import UserAgent
 
-from pydantic import BaseModel, ValidationError, Extra
+from pydantic import BaseModel, ValidationError, Extra, Field, PrivateAttr
 
 
 IntOrStr = Union[int, str]

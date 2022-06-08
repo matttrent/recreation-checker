@@ -38,6 +38,7 @@ from .api_client import (
 )
 from .api_permit import (
     RgApiPermitDivision,
+    RgApiPermitEntrance,
     RGApiPermit,
     RGApiPermitAvailability,
     RGApiPermitInyoAvailability,
@@ -291,6 +292,10 @@ class Campground:
             raise AttributeError
         return self.api_campground.__getattribute__(attr)
 
+    @property
+    def url(self) -> str:
+        return f"https://www.recreation.gov/camping/campgrounds/{self.id}"
+
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None
     ) -> CampgroundAvailabilityList:
@@ -343,6 +348,10 @@ class Permit:
             raise AttributeError
         return self.api_permit.__getattribute__(attr)
 
+    @property
+    def url(self) -> str:
+        return f"https://www.recreation.gov/permits/{self.id}"
+    
     def division_for_code(self, code: str) -> RgApiPermitDivision:
         for divis in self.divisions.values():
             if divis.code == code:

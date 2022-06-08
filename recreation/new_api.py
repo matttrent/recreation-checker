@@ -227,7 +227,7 @@ class RGApiPermit(BaseModel):
 class RgApiCampsiteAvailability(BaseModel):
     availabilities: Dict[dt.datetime, CampsiteAvailabilityStatus]
     id: str = Field(..., alias="campsite_id")
-    reserve_type: str = Field(..., alias="campsite_reserve_type")
+    reserve_type: CampsiteReserveType = Field(..., alias="campsite_reserve_type")
     campsite_type: CampsiteType
     loop: str
     max_num_people: int

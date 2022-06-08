@@ -36,6 +36,8 @@ class CampgroundType(str, enum.Enum):
 
 
 class CampsiteType(str, enum.Enum):
+    cabin_nonelectric = "CABIN NONELECTRIC"
+    lookout = "LOOKOUT"
     management = "MANAGEMENT"
     rv_nonelectric = "RV NONELECTRIC"
     standard_nonelectric = "STANDARD NONELECTRIC"
@@ -60,6 +62,7 @@ class PermitDivisionType(str, enum.Enum):
 
 
 class CampsiteAvailabilityStatus(str, enum.Enum):
+    available = "Available"
     not_available = "Not Available"
     not_reservable_management = "Not Reservable Management"
     reserved = "Reserved"
@@ -237,13 +240,12 @@ class RgApiCampsiteAvailability(BaseModel):
 
     # def __init__(self, **data: Any) -> None:
     #     print("campsite_reserve_type", data["campsite_reserve_type"])
-    #     print("campsite_status", data["campsite_status"])
     #     print("campsite_type", data["campsite_type"])
+    #     print("availability types", set(t for t in data["availabilities"].values()))
     #     super().__init__(**data)
 
-
     def __repr__(self) -> str:
-        return f"{self.__repr_name__()}(id={self.campsite_id})"
+        return f"{self.__repr_name__()}(id={self.id})"
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -561,9 +563,9 @@ class CampgroundAvailabilityList(AvailabilityList):
         availability: List[CampgroundAvailability] = []
 
         for camp_id, camp_avail in api_availability.campsites.items():
-            for date, date_avail in camp_avail.items():
+            for date, date_avail in camp_avail.availabilities.items():
                 avail = CampgroundAvailability(
-                    id=camp_id,
+                    id=camp_avail.id,
                     date=date.date(),
                     status=date_avail,
                     length=1
@@ -600,10 +602,10 @@ class CampgroundAvailabilityList(AvailabilityList):
 
         agg_availability: list[CampgroundAvailability] = []
 
-        ids = list(set(avail.id for avail in availability))
+        ids = list(set(avail.id for avail in day_availability))
         for id in ids:
             site_day_avail = [
-                avail for avail in day_availability if avail.id = id
+                avail for avail in day_availability if avail.id == id
             ]
             site_agg_avail = CampgroundAvailabilityList._aggregate_campsite_availability(
                 site_day_avail
@@ -628,6 +630,16 @@ class CampgroundAvailabilityList(AvailabilityList):
         agg_availability = CampgroundAvailabilityList._aggregate_campground_availability(availability)
 
         return CampgroundAvailabilityList(agg_availability)
+
+    def filter_status(
+        self, status: CampsiteAvailabilityStatus
+    ) -> "CampgroundAvailabilityList":
+        availability = [avail for avail in self.availability if avail.status == status]
+        return self.__class__(availability)
+
+    def filter_length(self, length: int) -> "CampgroundAvailabilityList":
+        availability = [avail for avail in self.availability if avail.length >= length]
+        return self.__class__(availability)
 
 
 class PermitAvailabilityList(AvailabilityList):
@@ -715,6 +727,51 @@ class PermitAvailabilityList(AvailabilityList):
         return self.__class__(availability)
 
 
+class Campground:
+
+    api_campground: RGApiCampground
+
+    def __init__(self, api_camgground: RGApiCampground):
+        self.api_campground = api_camgground
+
+    @staticmethod
+    def fetch(campground_id: IntOrStr) -> "Campground":
+        client = RecreationGovClient()
+        campground = client.get_campground(campground_id)
+        return Campground(campground)
+
+    def __getattr__(self, attr: str) -> Any:
+        if attr not in self.api_campground.__fields__:
+            raise AttributeError
+        return self.api_campground.__getattribute__(attr)
+
+    def fetch_availability(
+        self, start_date: dt.date, end_date: Optional[dt.date] = None
+    ) -> CampgroundAvailabilityList:
+
+        start_date = max(start_date, dt.date.today())
+        if not end_date:
+            end_date = start_date
+
+        start_month = start_date.replace(day=1)
+        end_month = end_date.replace(day=1)
+        n_months = (
+            (end_month.year - start_month.year) * 12
+            + (end_month.month - start_month.month)
+            + 1
+        )
+        months: Iterable[dt.date] = rrule.rrule(
+            freq=rrule.MONTHLY, dtstart=start_month, count=n_months
+        )
+
+        client = RecreationGovClient()
+        availability_months = [
+            client.get_campground_availability(self.id, month) for month in months
+        ]
+
+        return CampgroundAvailabilityList.from_campground(availability_months)
+
+
 class Permit:
 
     api_permit: RGApiPermit
@@ -736,6 +793,8 @@ class Permit:
         return Permit(permit)
 
     def __getattr__(self, attr: str) -> Any:
+        if attr not in self.api_permit.__fields__:
+            raise AttributeError
         return self.api_permit.__getattribute__(attr)
 
     def division_for_code(self, code: str) -> RgApiPermitDivision:
@@ -752,7 +811,9 @@ class Permit:
 
         raise IndexError(f"Division with {name} not found")
 
-    def fetch_availability(self, start_date: dt.date, end_date: Optional[dt.date] = None) -> AvailabilityList:
+    def fetch_availability(
+        self, start_date: dt.date, end_date: Optional[dt.date] = None
+    ) -> PermitAvailabilityList:
 
         start_date = max(start_date, dt.date.today())
         if not end_date:

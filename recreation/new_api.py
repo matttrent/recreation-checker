@@ -7,15 +7,17 @@ from typing import Dict, Iterable, List, Optional, Any, Union
 from operator import attrgetter
 from dateutil import rrule
 
-from apiclient import (    APIClient,
+from apiclient import (    
+    APIClient,
     endpoint,
     paginated,
     retry_request,
     HeaderAuthentication,
     JsonResponseHandler,
-    JsonRequestFormatter
-    )
+    JsonRequestFormatter,
+)
 from apiclient.response import Response
+from apiclient.exceptions import ClientError
 from apiclient.utils.typing import JsonType
 from apiclient_pydantic import (
     params_serializer, response_serializer, serialize_all_methods
@@ -221,8 +223,8 @@ class RGApiPermit(BaseModel):
 
 class RgApiCampsiteAvailability(BaseModel):
     availabilities: Dict[dt.datetime, CampsiteAvailabilityStatus]
-    campsite_id: str
-    campsite_reserve_type: CampsiteReserveType
+    id: str = Field(..., alias="campsite_id")
+    reserve_type: str = Field(..., alias="campsite_reserve_type")
     campsite_type: CampsiteType
     loop: str
     max_num_people: int
@@ -547,7 +549,7 @@ class PermitAvailabilityList(AvailabilityList):
             for date, date_avail in divis_avail.date_availability.items():
                 avail = PermitAvailability(
                     id=division_id,
-                    date=date,
+                    date=date.date(),
                     remaining=date_avail.remaining,
                     total=date_avail.total,
                     is_walkup=date_avail.show_walkup
@@ -600,6 +602,15 @@ class PermitAvailabilityList(AvailabilityList):
         availability.sort(key=attrgetter("id", "date"))
         return PermitAvailabilityList(availability)
     
+    def filter_division(
+        self, 
+        division: Union[RgApiPermitDivision, list[RgApiPermitDivision]]
+    ) -> "PermitAvailabilityList":
+        if type(division) != list:
+            division = [division]
+        ids = [div.id for div in division]
+        return self.filter_id(ids)
+
     def filter_remain(self, remaining: int) -> "PermitAvailabilityList":
         availability = [avail for avail in self.availability if avail.remaining >= remaining]
         return self.__class__(availability)
@@ -664,9 +675,15 @@ class Permit:
         )
 
         client = RecreationGovClient()
-        availability_months = [
-            client.get_permit_inyo_availability(self.id, month)
-            for month in months
-        ]
+        try:
+            client.get_permit_availability(self.id, start_month)
+            get_permit = client.get_permit_availability
+            from_permit = PermitAvailabilityList.from_permit 
+        except ClientError:
+            client.get_permit_inyo_availability(self.id, start_month)
+            get_permit = client.get_permit_inyo_availability
+            from_permit = PermitAvailabilityList.from_permit_inyo
 
-        return PermitAvailabilityList.from_permit_inyo(availability_months)
+        availability_months = [get_permit(self.id, month) for month in months]
+
+        return from_permit(availability_months)

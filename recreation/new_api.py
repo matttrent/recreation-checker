@@ -2,7 +2,10 @@ from dataclasses import dataclass
 import datetime as dt
 import enum
 import itertools
-from typing import Dict, List, Optional, Any, Union
+from tracemalloc import start
+from typing import Dict, Iterable, List, Optional, Any, Union
+from operator import attrgetter
+from dateutil import rrule
 
 from apiclient import (    APIClient,
     endpoint,
@@ -26,7 +29,7 @@ from pydantic import BaseModel, ValidationError, Extra, Field, PrivateAttr
 IntOrStr = Union[int, str]
 
 
-class FacilityType(str, enum.Enum):
+class CampgroundType(str, enum.Enum):
     standard = "STANDARD"
 
 
@@ -48,6 +51,12 @@ class CampsiteReserveType(str, enum.Enum):
     site_specific = "Site-Specific"
 
 
+class PermitDivisionType(str, enum.Enum):
+    destination_zone = "Destination Zone"
+    entry_point = "Entry Point"
+    trailhead = "Trailhead"
+
+
 class CampsiteAvailabilityStatus(str, enum.Enum):
     not_available = "Not Available"
     not_reservable_management = "Not Reservable Management"
@@ -55,44 +64,54 @@ class CampsiteAvailabilityStatus(str, enum.Enum):
 
 
 class RGApiCampground(BaseModel):
-    campsite_ids: List[str] = Field(list(), alias="campsites")
-    facility_email:  Optional[str]
-    facility_id: str
-    facility_latitude:  float
-    facility_longitude: float
-    facility_map_url:  Optional[str]
-    facility_name: str
-    facility_phone: str
-    facility_type: FacilityType
+    campsite_ids: List[str] = Field(..., alias="campsites")
+    email:  Optional[str] = Field(..., alias="facility_email")
+    id: str = Field(..., alias="facility_id")
+    latitude: float = Field(..., alias="facility_latitude")
+    longitude: float = Field(..., alias="facility_longitude")
+    map_url:  Optional[str] = Field(..., alias="facility_map_url")
+    name: str = Field(..., alias="facility_name")
+    phone: str = Field(..., alias="facility_phone")
+    campground_type: CampgroundType = Field(..., alias="facility_type")
     parent_asset_id: str
 
     class Config:
         extra = Extra.ignore
 
+    # def __init__(self, **data: Any) -> None:
+    #     print("facility_type", data["facility_type"])
+    #     super().__init__(**data)
+
     def __repr__(self) -> str:
-        return f"{self.__repr_name__()}(id={self.facility_id}, name={self.facility_name})"
+        return f"{self.__repr_name__()}(id={self.id}, name={self.name})"
 
     def __str__(self) -> str:
         return self.__repr__()
 
 
 class RGApiCampsite(BaseModel):
-    campsite_id: str
-    campsite_latitude:  float
-    campsite_longitude: float
-    campsite_name: str
-    campsite_reserve_type: str
-    campsite_status: CampsiteStatus
+    id: str = Field(..., alias="campsite_id")
+    latitude:  float = Field(..., alias="campsite_latitude")
+    longitude: float = Field(..., alias="campsite_longitude")
+    name: str = Field(..., alias="campsite_name")
+    reserve_type: str = Field(..., alias="campsite_reserve_type")
+    status: CampsiteStatus = Field(..., alias="campsite_status")
     campsite_type: CampsiteType
-    facility_id: str
+    campground_id: str = Field(..., alias="facility_id")
     loop: Optional[str]
     parent_site_id: Optional[str]
 
     class Config:
         extra = Extra.ignore
 
+    # def __init__(self, **data: Any) -> None:
+    #     print("campsite_reserve_type", data["campsite_reserve_type"])
+    #     print("campsite_status", data["campsite_status"])
+    #     print("campsite_type", data["campsite_type"])
+    #     super().__init__(**data)
+
     def __repr__(self) -> str:
-        return f"{self.__repr_name__()}(id={self.campsite_id}, name={self.campsite_name}, type={self.campsite_type}, status={self.campsite_status})"
+        return f"{self.__repr_name__()}(id={self.id}, name={self.name}, type={self.campsite_type}, status={self.status})"
 
     def __str__(self) -> str:
         return self.__repr__()
@@ -108,13 +127,17 @@ class RgApiPermitDivision(BaseModel):
     latitude: float
     longitude: float
     name: str
-    type: str
+    division_type: PermitDivisionType = Field(..., alias="type")
 
     # _entries: dict[str, "RgApiPermitEntrance"] = PrivateAttr()
     # _exits: dict[str, "RgApiPermitEntrance"] = PrivateAttr()
 
     class Config:
         extra = Extra.ignore
+
+    # def __init__(self, **data: Any) -> None:
+    #     print("type", data["type"])
+    #     super().__init__(**data)
 
     def __repr__(self) -> str:
         return f"{self.__repr_name__()}(id={self.id}, name={self.name})"
@@ -170,16 +193,16 @@ class RGApiPermit(BaseModel):
 
     _entrances: dict[str, RgApiPermitEntrance] = PrivateAttr()
 
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(self, **data) -> None:
+        super().__init__(**data)
 
         self._entrances = {
             entry.id : entry
             for entry in self.entrance_list
         }
 
-        # for divis in self.divisions.values():
-        #     divis.set_entrances(self._entrances)
+    #     # for divis in self.divisions.values():
+    #     #     divis.set_entrances(self._entrances)
 
 
     class Config:
@@ -209,6 +232,13 @@ class RgApiCampsiteAvailability(BaseModel):
 
     class Config:
         extra = Extra.ignore
+
+    # def __init__(self, **data: Any) -> None:
+    #     print("campsite_reserve_type", data["campsite_reserve_type"])
+    #     print("campsite_status", data["campsite_status"])
+    #     print("campsite_type", data["campsite_type"])
+    #     super().__init__(**data)
+
 
     def __repr__(self) -> str:
         return f"{self.__repr_name__()}(id={self.campsite_id})"
@@ -345,8 +375,8 @@ class RecreationGovClient(APIClient):
             request_formatter=JsonRequestFormatter,
         )
 
-    def get_default_headers(self) -> dict:
-        headers = super().get_default_headers()
+    def get_default_headers(self) -> dict[str, str]:
+        headers: dict[str, str] = super().get_default_headers()
         headers["User-Agent"] = UserAgent().random
         return headers
 
@@ -354,21 +384,28 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.campground.format(id=campground_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
-        print("facility_type", resp["campground"]["facility_type"])
+        # print("facility_type", resp["campground"]["facility_type"])
         return resp["campground"]
 
     def get_campsite(self, campsite_id: IntOrStr) -> RGApiCampsite:
         url = RecreationGovEndpoint.campsite.format(id=campsite_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
-        print("campsite_status", resp["campsite"]["campsite_status"])
-        print("campsite_type", resp["campsite"]["campsite_type"])
+        # print("campsite_status", resp["campsite"]["campsite_status"])
+        # print("campsite_type", resp["campsite"]["campsite_type"])
         return resp["campsite"]
 
     def get_permit(self, permit_id: IntOrStr) -> RGApiPermit:
         url = RecreationGovEndpoint.permit.format(id=permit_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
+
+        # division_types = set(
+        #     divis["type"]
+        #     for divis in resp["payload"]["divisions"].values()
+        # )
+        # print("division types", division_types)
+
         return resp["payload"]
 
     @staticmethod
@@ -388,17 +425,17 @@ class RecreationGovClient(APIClient):
         }
         resp = self.get(url, headers=headers, params=params)
 
-        campsite_reserve_types = set(
-            campsite["campsite_reserve_type"]
-            for campsite in resp["campsites"].values()
-        )
-        print("campsite reserve types", campsite_reserve_types)
+        # campsite_reserve_types = set(
+        #     campsite["campsite_reserve_type"]
+        #     for campsite in resp["campsites"].values()
+        # )
+        # print("campsite reserve types", campsite_reserve_types)
 
-        campsite_types = set(
-            campsite["campsite_type"]
-            for campsite in resp["campsites"].values()
-        )
-        print("campsite types", campsite_types)
+        # campsite_types = set(
+        #     campsite["campsite_type"]
+        #     for campsite in resp["campsites"].values()
+        # )
+        # print("campsite types", campsite_types)
 
         return resp
 

@@ -506,6 +506,15 @@ class BaseAvailability:
 
 
 @dataclass
+class CampgroundAvailability(BaseAvailability):
+    status: CampsiteAvailabilityStatus
+    length: int
+
+    @property
+    def end_date(self) -> dt.date:
+        return self.date + dt.timedelta(days=self.length)
+
+@dataclass
 class PermitAvailability(BaseAvailability):
     remaining: int
     total: int
@@ -515,9 +524,13 @@ class PermitAvailability(BaseAvailability):
 class AvailabilityList:
 
     availability: list[BaseAvailability]
+    ids: list[IntOrStr]
+    dates: list[dt.date]
 
     def __init__(self, availability: list[BaseAvailability]) -> None:
         self.availability = availability
+        self.ids = list(set(avail.id for avail in self.availability))
+        self.dates = list(set(avail.date for avail in self.availability))
 
     def filter_id(self, id: Union[IntOrStr, list[IntOrStr]]) -> "AvailabilityList":
         if type(id) != list:
@@ -539,11 +552,91 @@ class AvailabilityList:
         return self.__class__(availability)
 
 
+class CampgroundAvailabilityList(AvailabilityList):
+
+    @staticmethod
+    def _from_campground_month(
+        api_availability: RGApiCampgroundAvailability
+    ) -> list[CampgroundAvailability]:
+        availability: List[CampgroundAvailability] = []
+
+        for camp_id, camp_avail in api_availability.campsites.items():
+            for date, date_avail in camp_avail.items():
+                avail = CampgroundAvailability(
+                    id=camp_id,
+                    date=date.date(),
+                    status=date_avail,
+                    length=1
+                )
+                availability.append(avail)
+
+        availability.sort(key=attrgetter("id", "date"))
+        return availability
+
+    @staticmethod
+    def _aggregate_campsite_availability(
+        availability: list[CampgroundAvailability]
+    ) -> list[CampgroundAvailability]:
+
+        if len(availability) == 0:
+            return []
+
+        first = availability[0]
+        agg_avail = [first]
+
+        for i in range(1, len(availability)):
+            if agg_avail[-1].status == availability[i].status:
+                agg_avail[-1].length += 1
+            else:
+                current = availability[i]
+                agg_avail.append(current)
+
+        return agg_avail
+
+    @staticmethod
+    def _aggregate_campground_availability(
+        day_availability: list[CampgroundAvailability]
+    ) -> list[CampgroundAvailability]:
+
+        agg_availability: list[CampgroundAvailability] = []
+
+        ids = list(set(avail.id for avail in availability))
+        for id in ids:
+            site_day_avail = [
+                avail for avail in day_availability if avail.id = id
+            ]
+            site_agg_avail = CampgroundAvailabilityList._aggregate_campsite_availability(
+                site_day_avail
+            )
+            agg_availability += site_agg_avail
+
+        agg_availability.sort(key=attrgetter("id", "date"))
+        return agg_availability
+
+    @staticmethod
+    def from_campground(
+        availability_months: list[RGApiCampgroundAvailability]
+    ) -> "CampgroupAvailabilityList":
+
+        availability: list[CampgroundAvailability] = []
+
+        for api_month in availability_months:
+            month = CampgroundAvailabilityList._from_campground_month(api_month)
+            availability += month
+
+        availability.sort(key=attrgetter("id", "date"))
+        agg_availability = CampgroundAvailabilityList._aggregate_campground_availability(availability)
+
+        return CampgroundAvailabilityList(agg_availability)
+
+
 class PermitAvailabilityList(AvailabilityList):
 
     @staticmethod
-    def _from_permit_month(api_availability: RGApiPermitAvailability) -> list[PermitAvailability]:
-        availability: List[BaseAvailability] = []
+    def _from_permit_month(
+        api_availability: RGApiPermitAvailability
+    ) -> list[PermitAvailability]:
+        availability: List[PermitAvailability] = []
 
         for division_id, divis_avail in api_availability.availability.items():
             for date, date_avail in divis_avail.date_availability.items():
@@ -560,7 +653,9 @@ class PermitAvailabilityList(AvailabilityList):
         return availability
 
     @staticmethod
-    def from_permit(availability_months: list[RGApiPermitAvailability]) -> "PermitAvailabilityList":
+    def from_permit(
+        availability_months: list[RGApiPermitAvailability]
+    ) -> "PermitAvailabilityList":
         
         availability: list[PermitAvailability] = []
 

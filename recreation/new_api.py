@@ -269,10 +269,10 @@ class RGApiCampgroundAvailability(BaseModel):
     def __str__(self) -> str:
         return self.__repr__()
 
-    def get_availability(self, campsite_id: IntOrStr, date: dt.date) -> str:
-        cid = str(campsite_id)
-        key = dt.datetime(date.year, date.month, date.day, tzinfo=dt.timezone.utc)
-        return self.campsites[cid].availabilities[key]
+    # def get_availability(self, campsite_id: IntOrStr, date: dt.date) -> str:
+    #     cid = str(campsite_id)
+    #     key = dt.datetime(date.year, date.month, date.day, tzinfo=dt.timezone.utc)
+    #     return self.campsites[cid].availabilities[key]
 
 
 class RgApiPermitDateAvailability(BaseModel):
@@ -317,10 +317,27 @@ class RGApiPermitAvailability(BaseModel):
     def __str__(self) -> str:
         return self.__repr__()
 
-    def get_availability(self, division_id: IntOrStr, date: dt.date) -> RgApiPermitDateAvailability:
-        did = str(division_id)
-        key = dt.datetime(date.year, date.month, date.day, tzinfo=dt.timezone.utc)
-        return self.availability[did].date_availability[key]
+    # def get_availability(self, division_id: IntOrStr, date: dt.date) -> RgApiPermitDateAvailability:
+    #     did = str(division_id)
+    #     key = dt.datetime(date.year, date.month, date.day, tzinfo=dt.timezone.utc)
+    #     return self.availability[did].date_availability[key]
+
+    # def availability_list(self) -> list["BaseAvailability"]:
+    #     availability: List[BaseAvailability] = []
+
+    #     for division_id, divis_avail in self.availability.items():
+    #         for date, date_avail in divis_avail.date_availability.items():
+    #             avail = PermitAvailability(
+    #                 id=division_id,
+    #                 date=date,
+    #                 remaining=date_avail.remaining,
+    #                 total=date_avail.total,
+    #                 is_walkup=date_avail.show_walkup
+    #             )
+    #             availability.append(avail)
+                
+    #     availability.sort(key=attrgetter("id", "date"))
+    #     return availability
 
 
 class RgApiPermitInyoDivisionAvailability(BaseModel):
@@ -340,9 +357,26 @@ class RGApiPermitInyoAvailability(BaseModel):
         max_date = max(self.payload.keys()).isoformat()
         return f"{self.__repr_name__()}(start={min_date}, end={max_date})"
 
-    def get_availability(self, division_id: IntOrStr, date: dt.date) -> RgApiPermitInyoDivisionAvailability:
-        did = str(division_id)
-        return self.payload[date][did]
+    # def get_availability(self, division_id: IntOrStr, date: dt.date) -> RgApiPermitInyoDivisionAvailability:
+    #     did = str(division_id)
+    #     return self.payload[date][did]
+
+    # def availability_list(self) -> list["BaseAvailability"]:
+    #     availability: List[BaseAvailability] = []
+
+    #     for date, date_avail in self.payload.items():
+    #         for division_id, divis_avail in date_avail.items():
+    #             avail = PermitAvailability(
+    #                 date=date,
+    #                 id=division_id,
+    #                 remaining=divis_avail.remaining,
+    #                 total=divis_avail.total,
+    #                 is_walkup=divis_avail.is_walkup
+    #             )
+    #             availability.append(avail)
+        
+    #     availability.sort(key=attrgetter("id", "date"))
+    #     return availability
 
 
 @endpoint(base_url="https://www.recreation.gov/api")
@@ -463,17 +497,17 @@ class RecreationGovClient(APIClient):
         return self.get(url, headers=headers, params=params) 
 
 
-
 @dataclass
 class BaseAvailability:
     id: str
     date: dt.date
 
 
+@dataclass
 class PermitAvailability(BaseAvailability):
-    is_walkup: bool
     remaining: int
     total: int
+    is_walkup: bool
 
 
 class AvailabilityList:
@@ -483,14 +517,96 @@ class AvailabilityList:
     def __init__(self, availability: list[BaseAvailability]) -> None:
         self.availability = availability
 
+    def filter_id(self, id: Union[IntOrStr, list[IntOrStr]]) -> "AvailabilityList":
+        if type(id) != list:
+            id = [id]
+        id_strs = [str(i) for i in id]
+        availability = [avail for avail in self.availability if avail.id in id_strs]
+        return self.__class__(availability)
+
+    def filter_dates(
+        self,         
+        start_date: Optional[dt.date] = None,
+        end_date: Optional[dt.date] = None,
+    ) -> "AvailabilityList":
+        availability = self.availability
+        if start_date:
+            availability = [avail for avail in availability if avail.date >= start_date]
+        if end_date:
+            availability = [avail for avail in availability if avail.date <= end_date]
+        return self.__class__(availability)
+
+
+class PermitAvailabilityList(AvailabilityList):
+
     @staticmethod
-    def from_permit_inyo(availability_months: list[RGApiPermitInyoAvailability]) -> "AvailabilityList":
+    def _from_permit_month(api_availability: RGApiPermitAvailability) -> list[PermitAvailability]:
+        availability: List[BaseAvailability] = []
 
-        seen = set()
-        availability = []
+        for division_id, divis_avail in api_availability.availability.items():
+            for date, date_avail in divis_avail.date_availability.items():
+                avail = PermitAvailability(
+                    id=division_id,
+                    date=date,
+                    remaining=date_avail.remaining,
+                    total=date_avail.total,
+                    is_walkup=date_avail.show_walkup
+                )
+                availability.append(avail)
+                
+        availability.sort(key=attrgetter("id", "date"))
+        return availability
 
-        for month in availability_months:
+    @staticmethod
+    def from_permit(availability_months: list[RGApiPermitAvailability]) -> "PermitAvailabilityList":
+        
+        availability: list[PermitAvailability] = []
 
+        for api_month in availability_months:
+            month = PermitAvailabilityList._from_permit_month(api_month)
+            availability += month
+
+        availability.sort(key=attrgetter("id", "date"))
+        return PermitAvailabilityList(availability)
+
+    @staticmethod
+    def _from_permit_inyo_month(api_availability: RGApiPermitInyoAvailability) -> list[PermitAvailability]:
+
+        availability: List[PermitAvailability] = []
+
+        for date, date_avail in api_availability.payload.items():
+            for division_id, divis_avail in date_avail.items():
+                avail = PermitAvailability(
+                    date=date,
+                    id=division_id,
+                    remaining=divis_avail.remaining,
+                    total=divis_avail.total,
+                    is_walkup=divis_avail.is_walkup
+                )
+                availability.append(avail)
+        
+        availability.sort(key=attrgetter("id", "date"))
+        return availability
+
+    @staticmethod
+    def from_permit_inyo(availability_months: list[RGApiPermitInyoAvailability]) -> "PermitAvailabilityList":
+
+        availability: list[PermitAvailability] = []
+
+        for api_month in availability_months:
+            month = PermitAvailabilityList._from_permit_inyo_month(api_month)
+            availability += month
+
+        availability.sort(key=attrgetter("id", "date"))
+        return PermitAvailabilityList(availability)
+    
+    def filter_remain(self, remaining: int) -> "PermitAvailabilityList":
+        availability = [avail for avail in self.availability if avail.remaining >= remaining]
+        return self.__class__(availability)
+
+    def filter_walkup(self, is_walkup: bool) -> "PermitAvailabilityList":
+        availability = [avail for avail in self.availability if avail.is_walkup == is_walkup]
+        return self.__class__(availability)
 
 
 class Permit:
@@ -513,7 +629,7 @@ class Permit:
         permit = client.get_permit(permit_id)
         return Permit(permit)
 
-    def __getattr__(self, attr: str):
+    def __getattr__(self, attr: str) -> Any:
         return self.api_permit.__getattribute__(attr)
 
     def division_for_code(self, code: str) -> RgApiPermitDivision:
@@ -529,3 +645,28 @@ class Permit:
                 return divis
 
         raise IndexError(f"Division with {name} not found")
+
+    def fetch_availability(self, start_date: dt.date, end_date: Optional[dt.date] = None) -> AvailabilityList:
+
+        start_date = max(start_date, dt.date.today())
+        if not end_date:
+            end_date = start_date
+
+        start_month = start_date.replace(day=1)
+        end_month = end_date.replace(day=1)
+        n_months = (
+            (end_month.year - start_month.year) * 12
+            + (end_month.month - start_month.month)
+            + 1
+        )
+        months: Iterable[dt.date] = rrule.rrule(
+            freq=rrule.MONTHLY, dtstart=start_month, count=n_months
+        )
+
+        client = RecreationGovClient()
+        availability_months = [
+            client.get_permit_inyo_availability(self.id, month)
+            for month in months
+        ]
+
+        return PermitAvailabilityList.from_permit_inyo(availability_months)

@@ -77,6 +77,11 @@ def permit_data(permit_division_data, permit_entrance_data) -> dict[str, Any]:
     }
 
 
+@pytest.fixture
+def permit(permit_data):
+    return RGApiPermit(**permit_data)
+
+
 def test_permit_division_init(permit_division_data):
     division = RgApiPermitDivision(**permit_division_data)
     assert division.district == 'Desolation Wilderness'
@@ -99,3 +104,5 @@ def test_permit_init(permit_data, permit_division, permit_entrance):
     assert len(permit.entrance_list) == 2
     assert permit.entrance_list[0].id == '72259'
     assert permit.entrance_list[1] == permit_entrance
+
+

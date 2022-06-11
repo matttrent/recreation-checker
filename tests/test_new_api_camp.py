@@ -1,19 +1,22 @@
 import datetime as dt
 import pytest
-from typing import Any
+from typing import Any, Dict
 
 from recreation.newapi.api_camp import (
+    CampsiteAvailabilityStatus,
     RGApiCampground,
+    RGApiCampgroundAvailability,
     RGApiCampsite,
     CampgroundType,
     CampsiteReserveType,
     CampsiteStatus,
     CampsiteType,
+    RgApiCampsiteAvailability,
 )
 
 
 @pytest.fixture
-def campsite_data():
+def campsite_data() -> Dict[str, Any]:
     return {
         'campsite_id': '64082',
         'campsite_latitude': 41.578691,
@@ -29,7 +32,12 @@ def campsite_data():
 
 
 @pytest.fixture
-def campground_data():
+def campsite(campsite_data) -> RGApiCampsite:
+    return RGApiCampsite(**campsite_data)
+
+
+@pytest.fixture
+def campground_data() -> Dict[str, Any]:
     return {
         'campsites': ['64082'],
         'facility_email': '',
@@ -42,6 +50,11 @@ def campground_data():
         'facility_type': 'STANDARD',
         'parent_asset_id': '1073'
     }
+
+
+@pytest.fixture
+def campground(campground_data) -> RGApiCampground:
+    return RGApiCampground(**campground_data)
 
 
 def test_campsite_init(campsite_data):
@@ -68,3 +81,50 @@ def test_campground_init(campground_data):
     assert campground.phone == '530-964-2184'
     assert campground.campground_type == CampgroundType.standard
 
+
+@pytest.fixture
+def campground_availability_data() -> Dict[str, Any]:
+    return {
+        "campsites": {
+            "64082": {
+                "availabilities": {
+                    "2022-07-01T00:00:00Z": "Available",
+                    "2022-07-02T00:00:00Z": "Available",
+                    "2022-07-03T00:00:00Z": "Not Available",
+                },
+                "campsite_id": "64082",
+                "campsite_reserve_type": "Site-Specific",
+                "campsite_type": "CABIN NONELECTRIC",
+                "loop": "AREA LITTLE MT. HOFFMAN LOOKOUT",
+                "max_num_people": 4,
+                "min_num_people": 1,
+                "site": "001",
+                "type_of_use": "Overnight",
+            }
+        }
+    }
+
+
+@pytest.fixture
+def campground_availability(campground_availability_data):
+    return RGApiCampgroundAvailability(**campground_availability_data)
+
+
+def test_campground_availability_init(campground_availability_data):
+    camp_avail = RGApiCampgroundAvailability(**campground_availability_data)
+    site = camp_avail.campsites["64082"]
+    assert site.id == "64082"
+    assert site.reserve_type == CampsiteReserveType.site_specific
+
+    assert (
+        site.availabilities[dt.datetime(2022, 7, 1, tzinfo=dt.timezone.utc)] ==
+        CampsiteAvailabilityStatus.available
+    )
+    assert (
+        site.availabilities[dt.datetime(2022, 7, 2, tzinfo=dt.timezone.utc)] ==
+        CampsiteAvailabilityStatus.available
+    )
+    assert (
+        site.availabilities[dt.datetime(2022, 7, 3, tzinfo=dt.timezone.utc)] ==
+        CampsiteAvailabilityStatus.not_available
+    )

@@ -1,45 +1,28 @@
-from dataclasses import dataclass
 import datetime as dt
-import enum
-import itertools
-from tracemalloc import start
-from typing import Dict, Iterable, List, Optional, Any, Union
-from operator import attrgetter
-from dateutil import rrule
+from distutils import core
+from typing import Union
 
 from apiclient import (    
     APIClient,
     endpoint,
-    paginated,
-    retry_request,
-    HeaderAuthentication,
     JsonResponseHandler,
     JsonRequestFormatter,
 )
-from apiclient.response import Response
-from apiclient.exceptions import ClientError
-from apiclient.utils.typing import JsonType
-from apiclient_pydantic import (
-    params_serializer, response_serializer, serialize_all_methods
-)
-
+from apiclient_pydantic import serialize_all_methods
 from fake_useragent import UserAgent
-
-from pydantic import BaseModel, ValidationError, Extra, Field, PrivateAttr
 
 from .api_camp import (
     RGApiCampground,
     RGApiCampsite,
     RGApiCampgroundAvailability,
 )
+from .core import IntOrStr
 from .api_permit import (
     RGApiPermit,
     RGApiPermitAvailability,
     RGApiPermitInyoAvailability,
 )
 
-
-IntOrStr = Union[int, str]
 
 
 @endpoint(base_url="https://www.recreation.gov/api")

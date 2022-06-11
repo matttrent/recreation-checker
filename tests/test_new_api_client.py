@@ -1,13 +1,8 @@
 import datetime as dt
 import pytest
-from typing import Any
 
 import responses
 
-from recreation.newapi.api_camp import (
-    RGApiCampsite,
-    RGApiCampground,
-)
 from recreation.newapi.api_client import (
     RecreationGovEndpoint,
     RecreationGovClient,
@@ -125,6 +120,17 @@ def test_client_get_campground(
     )
     assert test_availability == campground_availability
 
+
+def test_format_date(recreation_client):
+    date = dt.datetime(2022, 7, 1)
+    assert (
+        recreation_client._format_date(date, with_ms=True) == 
+        "2022-07-01T00:00:00.000Z"
+    )
+    assert (
+        recreation_client._format_date(date, with_ms=False) == 
+        "2022-07-01T00:00:00Z"
+    )
 
 @responses.activate
 def test_client_get_permit(recreation_client, permit_data, permit):

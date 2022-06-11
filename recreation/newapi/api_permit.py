@@ -1,34 +1,9 @@
-from dataclasses import dataclass
 import datetime as dt
 import enum
 import itertools
-from tracemalloc import start
-from typing import Dict, Iterable, List, Optional, Any, Union
-from operator import attrgetter
-from dateutil import rrule
 
-from apiclient import (    
-    APIClient,
-    endpoint,
-    paginated,
-    retry_request,
-    HeaderAuthentication,
-    JsonResponseHandler,
-    JsonRequestFormatter,
-)
-from apiclient.response import Response
-from apiclient.exceptions import ClientError
-from apiclient.utils.typing import JsonType
-from apiclient_pydantic import (
-    params_serializer, response_serializer, serialize_all_methods
-)
+from pydantic import BaseModel, Extra, Field, PrivateAttr
 
-from fake_useragent import UserAgent
-
-from pydantic import BaseModel, ValidationError, Extra, Field, PrivateAttr
-
-
-IntOrStr = Union[int, str]
 
 
 class PermitDivisionType(str, enum.Enum):

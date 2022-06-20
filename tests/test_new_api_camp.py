@@ -16,7 +16,7 @@ from recreation.newapi.api_camp import (
 
 
 @pytest.fixture
-def campsite_data() -> Dict[str, Any]:
+def campsite_data() -> dict[str, Any]:
     return {
         'campsite_id': '64082',
         'campsite_latitude': 41.578691,
@@ -37,7 +37,7 @@ def campsite(campsite_data) -> RGApiCampsite:
 
 
 @pytest.fixture
-def campground_data() -> Dict[str, Any]:
+def campground_data() -> dict[str, Any]:
     return {
         'campsites': ['64082'],
         'facility_email': '',
@@ -83,7 +83,7 @@ def test_campground_init(campground_data):
 
 
 @pytest.fixture
-def campground_availability_data() -> Dict[str, Any]:
+def campground_availability_data() -> dict[str, Any]:
     return {
         "campsites": {
             "64082": {

@@ -13,7 +13,9 @@ from test_new_api_camp import (
     campground_availability_data, campground_availability
 )
 from test_new_api_permit import (
-    permit_data, permit, permit_division_data, permit_entrance_data
+    permit_data, permit, permit_division_data, permit_entrance_data,
+    permit_availability_data, permit_availability, permit_inyo_availability_data, 
+    permit_inyo_availability
 )
 
 
@@ -101,7 +103,7 @@ def test_client_get_campground(recreation_client, campground_data, campground):
 
 
 @responses.activate
-def test_client_get_campground(
+def test_client_get_campground_availability(
     recreation_client, campground_availability_data, campground_availability
 ):
 
@@ -149,3 +151,46 @@ def test_client_get_permit(recreation_client, permit_data, permit):
     test_permit = recreation_client.get_permit(permit_id)
     assert test_permit == permit
 
+
+@responses.activate
+def test_client_get_permit_availability(
+    recreation_client, permit_availability_data, permit_availability
+):
+
+    permit_id = 233261
+    start_date = dt.datetime(2022, 7, 1)
+    resp = {
+        "payload": permit_availability_data
+    }
+    responses.add(
+        responses.GET,
+        f"https://www.recreation.gov/api/permits/233261/availability/month",
+        json=resp,
+        status=200,
+    )
+
+    test_availability = recreation_client.get_permit_availability(
+        permit_id, start_date=start_date
+    )
+    assert test_availability == permit_availability
+
+
+@responses.activate
+def test_client_get_permit_inyo_availability(
+    recreation_client, permit_inyo_availability_data, permit_inyo_availability
+):
+
+    permit_id = 233262
+    start_date = dt.datetime(2022, 7, 1)
+    resp = permit_inyo_availability_data
+    responses.add(
+        responses.GET,
+        f"https://www.recreation.gov/api/permitinyo/233262/availability",
+        json=resp,
+        status=200,
+    )
+
+    test_availability = recreation_client.get_permit_inyo_availability(
+        permit_id, start_date=start_date
+    )
+    assert test_availability == permit_inyo_availability

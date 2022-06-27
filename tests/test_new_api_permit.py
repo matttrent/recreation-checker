@@ -204,8 +204,6 @@ def test_permit_availability_init(permit_availability_data):
         )
 
 
-
-
 @pytest.fixture
 def permit_inyo_availability_data() -> dict[str, Any]:
     return {

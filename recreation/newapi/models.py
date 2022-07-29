@@ -64,7 +64,8 @@ class Campground:
         return f"https://www.recreation.gov/camping/campgrounds/{self.id}"
 
     def fetch_availability(
-        self, start_date: dt.date, end_date: Optional[dt.date] = None
+        self, start_date: dt.date, end_date: Optional[dt.date] = None,
+        aggregate: bool = True
     ) -> CampgroundAvailabilityList:
 
         start_date = max(start_date, dt.date.today())
@@ -87,7 +88,9 @@ class Campground:
             client.get_campground_availability(self.id, month) for month in months
         ]
 
-        return CampgroundAvailabilityList.from_campground(availability_months)
+        return CampgroundAvailabilityList.from_campground(
+            availability_months, aggregate
+        )
 
 
 class Permit:

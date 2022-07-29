@@ -134,7 +134,8 @@ class CampgroundAvailabilityList(AvailabilityList):
 
     @staticmethod
     def from_campground(
-        availability_months: list[RGApiCampgroundAvailability]
+        availability_months: list[RGApiCampgroundAvailability],
+        aggregate: bool = True
     ) -> "CampgroupAvailabilityList":
 
         availability: list[CampgroundAvailability] = []
@@ -144,9 +145,13 @@ class CampgroundAvailabilityList(AvailabilityList):
             availability += month
 
         availability.sort(key=attrgetter("id", "date"))
-        agg_availability = CampgroundAvailabilityList._aggregate_campground_availability(availability)
 
-        return CampgroundAvailabilityList(agg_availability)
+        if aggregate:
+            availability = CampgroundAvailabilityList._aggregate_campground_availability(
+                availability
+            )
+
+        return CampgroundAvailabilityList(availability)
 
     def filter_status(
         self, status: CampsiteAvailabilityStatus

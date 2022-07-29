@@ -30,6 +30,17 @@ from .api_permit import (
 IntOrStr = Union[int, str]
 
 
+PERMIT_IDS = {
+    "desolation": "233261",
+    "humboldt": "445856",
+    "yosemite": "445859",
+    "inyo": "233262",
+    "sierra": "445858",
+    "seki": "445857",
+    "whitney": "233260",
+}
+
+
 class Campground:
 
     api_campground: RGApiCampground
@@ -96,6 +107,8 @@ class Permit:
     @staticmethod
     def fetch(permit_id: IntOrStr) -> "Permit":
         client = RecreationGovClient()
+        if permit_id in PERMIT_IDS:
+            permit_id = PERMIT_IDS[permit_id]
         permit = client.get_permit(permit_id)
         return Permit(permit)
 

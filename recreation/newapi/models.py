@@ -1,5 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
+import functools
+
+from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable, Optional, Any, Union
 from dateutil import rrule
 
@@ -30,6 +32,8 @@ from .api_permit import (
 
 IntOrStr = Union[int, str]
 
+
+POOL_NUM_WORKERS = 16
 
 PERMIT_IDS = {
     "desolation": "233261",
@@ -90,12 +94,11 @@ class Campground:
         return f"https://www.recreation.gov/camping/campgrounds/{self.id}"
 
     def fetch_campsites(self) -> None:
-        with ThreadPoolExecutor(max_workers=8) as executor:
+        with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
             self.campsites = {
                 site.id: site
                 for site in executor.map(Campsite.fetch, self.campsite_ids)
             }
-
 
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None,
@@ -118,9 +121,12 @@ class Campground:
         )
 
         client = RecreationGovClient()
-        availability_months = [
-            client.get_campground_availability(self.id, month) for month in months
-        ]
+        def get_campground_partial(month: dt.date):
+            return client.get_campground_availability(self.id, month)
+        with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
+            availability_months = list(executor.map(
+                get_campground_partial, months
+            ))
 
         return CampgroundAvailabilityList.from_campground(
             availability_months, aggregate
@@ -201,6 +207,10 @@ class Permit:
             get_permit = client.get_permit_inyo_availability
             from_permit = PermitAvailabilityList.from_permit_inyo
 
-        availability_months = [get_permit(self.id, month) for month in months]
+        def get_permit_partial(month: dt.date):
+            return get_permit(self.id, month)
+
+        with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
+            availability_months = list(executor.map(get_permit_partial, months))
 
         return from_permit(availability_months)

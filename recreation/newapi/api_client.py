@@ -1,6 +1,10 @@
 import datetime as dt
+
 from distutils import core
 from typing import Union
+
+import apiclient.exceptions
+import backoff
 
 from apiclient import (    
     APIClient,
@@ -23,6 +27,10 @@ from .api_permit import (
     RGApiPermitInyoAvailability,
 )
 
+
+BACKOFF_EXCEPTIONS = (
+    apiclient.exceptions.APIClientError,
+)
 
 
 @endpoint(base_url="https://www.recreation.gov/api")
@@ -60,6 +68,7 @@ class RecreationGovClient(APIClient):
         headers["User-Agent"] = UserAgent().random
         return headers
 
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS)
     def get_campground(self, campground_id: IntOrStr) -> RGApiCampground:
         url = RecreationGovEndpoint.campground.format(id=campground_id)
         headers = self.get_default_headers()
@@ -67,6 +76,7 @@ class RecreationGovClient(APIClient):
         # print("facility_type", resp["campground"]["facility_type"])
         return resp["campground"]
 
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS)
     def get_campsite(self, campsite_id: IntOrStr) -> RGApiCampsite:
         url = RecreationGovEndpoint.campsite.format(id=campsite_id)
         headers = self.get_default_headers()
@@ -75,6 +85,7 @@ class RecreationGovClient(APIClient):
         # print("campsite_type", resp["campsite"]["campsite_type"])
         return resp["campsite"]
 
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS)
     def get_permit(self, permit_id: IntOrStr) -> RGApiPermit:
         url = RecreationGovEndpoint.permit.format(id=permit_id)
         headers = self.get_default_headers()
@@ -94,6 +105,7 @@ class RecreationGovClient(APIClient):
         date_formatted = dt.datetime.strftime(date_object, f"%Y-%m-%dT00:00:00{ms}Z")
         return date_formatted
 
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS)
     def get_campground_availability(
         self, campground_id: IntOrStr, start_date: dt.date
     ) -> RGApiCampgroundAvailability:
@@ -119,6 +131,7 @@ class RecreationGovClient(APIClient):
 
         return resp
 
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS)
     def get_permit_availability(
         self, permit_id: IntOrStr, start_date: dt.date
     ) -> RGApiPermitAvailability:
@@ -131,6 +144,7 @@ class RecreationGovClient(APIClient):
         resp = self.get(url, headers=headers, params=params)
         return resp["payload"]
 
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS)
     def get_permit_inyo_availability(
         self, permit_id: IntOrStr, start_date: dt.date
     ) -> RGApiPermitInyoAvailability:

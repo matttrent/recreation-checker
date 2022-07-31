@@ -61,7 +61,8 @@ def permit_info(permit_id: str):
     # divtab.add_column("Type")
     # divtab.add_column("Entry IDs")
 
-    for div_id, divis in permit.divisions.items():
+    divisions = sorted(permit.divisions.values(), key=lambda x: x.name)
+    for divis in divisions:
         divtab.add_row(
             divis.name,
             divis.id,
@@ -122,7 +123,7 @@ def permit_avail(
         dcodes = division_codes.split(",")
         divisions = [
             div
-            for div_id, div in permit.divsions.items()
+            for div_id, div in permit.divisions.items()
             if div.code in dcodes
         ]
         avail = avail.filter_division(divisions)
@@ -143,7 +144,7 @@ def permit_avail(
 
     for a in avail.availability:
         availtab.add_row(
-            permit.divisions[a.id].name,
+            f"[link={permit.url}]{permit.divisions[a.id].name}[/link]",
             str(a.id),
             a.date.isoformat(),
             str(a.remaining),

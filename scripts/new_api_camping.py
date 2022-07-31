@@ -11,6 +11,7 @@ camping.py
 """
 
 import datetime as dt
+from math import perm
 
 import typer
 
@@ -38,7 +39,80 @@ app.add_typer(permit_app, name="permit")
 @campground_app.command("info")
 def campground_info(camp_id: str):
     camp = Campground.fetch(camp_id)
-    print(camp.api_campground)
+    camp.fetch_campsites()
+
+    name = Text(camp.name, style="bold blue")
+    console.print(name)
+
+    sitetab = Table(title="Campsites", box=box.SIMPLE_HEAD)
+    sitetab.add_column("Name")
+    sitetab.add_column("ID")
+    sitetab.add_column("Status")
+    sitetab.add_column("Site type")
+    sitetab.add_column("Reservation type")
+    # sitetab.add_column("Loop")
+
+    sites = sorted(camp.campsites.values(), key=lambda x: x.id)
+    for site in sites:
+        sitetab.add_row(
+            site.name,
+            str(site.id),
+            site.status.value,
+            site.campsite_type.value,
+            site.reserve_type.value,
+            # site.loop
+        )
+    console.print(sitetab)
+
+
+@campground_app.command("avail")
+def campground_avail(
+    camp_id: str,
+    start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
+    end_date: str = typer.Option(None, "--end-date", "-e", help="End date"),
+    site_ids: str = typer.Option(None, "--site-ids", "-i", help="Site IDs"),
+    length: int = typer.Option(None, "--length", "-l", help="Booking window length"),
+    status: str = typer.Option(None, help="Campsite status"),
+):
+
+    if not end_date:
+        end_date = start_date
+
+    sdate = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
+    edate = dt.datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    camp = Campground.fetch(camp_id)
+    camp.fetch_campsites()
+    avail = camp.fetch_availability(sdate, edate)
+
+    if site_ids:
+        sids = site_ids.split(",")
+        avail = avail.filter_id(sids)
+
+    if length:
+        avail = avail.filter_length(length)
+
+    if status:
+        avail = avail.filter_status(status)
+
+    availtab = Table(title="Available campsites", box=box.SIMPLE_HEAD)
+    availtab.add_column("Campsite name")
+    availtab.add_column("Campsite ID")
+    availtab.add_column("Start date")
+    availtab.add_column("End date")
+    availtab.add_column("Length")
+    availtab.add_column("Status")
+
+    for a in avail.availability:
+        availtab.add_row(
+            f"[link={camp.url}]{camp.campsites[a.id].name}[/link]",
+            str(a.id),
+            a.date.isoformat(),
+            (a.date + dt.timedelta(days=a.length)).isoformat(),
+            str(a.length),
+            a.status.value,
+        )
+    console.print(availtab)
 
 
 @permit_app.command("info")

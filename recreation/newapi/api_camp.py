@@ -11,6 +11,7 @@ class CampgroundType(str, enum.Enum):
 
 
 class CampsiteType(str, enum.Enum):
+    cabin_electric = "CABIN ELECTRIC"
     cabin_nonelectric = "CABIN NONELECTRIC"
     lookout = "LOOKOUT"
     management = "MANAGEMENT"
@@ -21,6 +22,7 @@ class CampsiteType(str, enum.Enum):
 
 class CampsiteStatus(str, enum.Enum):
     not_available = "Not Available"
+    not_reservable = "Not Reservable"
     not_reservable_management = "Not Reservable Management"
     open = "Open"
 
@@ -33,6 +35,7 @@ class CampsiteReserveType(str, enum.Enum):
 class CampsiteAvailabilityStatus(str, enum.Enum):
     available = "Available"
     not_available = "Not Available"
+    not_reservable = "Not Reservable"
     not_reservable_management = "Not Reservable Management"
     reserved = "Reserved"
 
@@ -68,7 +71,7 @@ class RGApiCampsite(BaseModel):
     latitude:  float = Field(..., alias="campsite_latitude")
     longitude: float = Field(..., alias="campsite_longitude")
     name: str = Field(..., alias="campsite_name")
-    reserve_type: str = Field(..., alias="campsite_reserve_type")
+    reserve_type: CampsiteReserveType = Field(..., alias="campsite_reserve_type")
     status: CampsiteStatus = Field(..., alias="campsite_status")
     campsite_type: CampsiteType
     campground_id: str = Field(..., alias="facility_id")

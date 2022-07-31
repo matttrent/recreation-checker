@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
 from typing import Iterable, Optional, Any, Union
 from dateutil import rrule
@@ -41,9 +42,34 @@ PERMIT_IDS = {
 }
 
 
+class Campsite:
+
+    api_campsite: RGApiCampsite
+
+    def __init__(self, api_campsite: RGApiCampsite) -> None:
+        self.api_campsite = api_campsite
+
+    @staticmethod
+    def fetch(campsite_id: IntOrStr) -> "Campsite":
+        client = RecreationGovClient()
+        campsite = client.get_campsite(campsite_id)
+        return Campsite(campsite)
+
+    def __getattr__(self, attr: str) -> Any:
+        if attr not in self.api_campsite.__fields__:
+            raise AttributeError
+        return self.api_campsite.__getattribute__(attr)
+
+    @property
+    def url(self) -> str:
+        return f"https://www.recreation.gov/camping/campsites/{self.id}"
+
+
 class Campground:
 
     api_campground: RGApiCampground
+
+    campsites: dict[str, RGApiCampsite] = {}
 
     def __init__(self, api_camgground: RGApiCampground):
         self.api_campground = api_camgground
@@ -62,6 +88,14 @@ class Campground:
     @property
     def url(self) -> str:
         return f"https://www.recreation.gov/camping/campgrounds/{self.id}"
+
+    def fetch_campsites(self) -> None:
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            self.campsites = {
+                site.id: site
+                for site in executor.map(Campsite.fetch, self.campsite_ids)
+            }
+
 
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None,

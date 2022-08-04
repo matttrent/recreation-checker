@@ -1,19 +1,19 @@
 import datetime as dt
 import pytest
 
-from recreation.newapi.api_camp import CampsiteAvailabilityStatus
+from recreation.api_camp import CampsiteAvailabilityStatus
 
-from recreation.newapi.availability_list import (
+from recreation.availability_list import (
     CampgroundAvailability,
     CampgroundAvailabilityList,
     PermitAvailability,
     PermitAvailabilityList
 )
 
-from test_new_api_camp import (
+from test_camp import (
     campground_availability, campground_availability_data
 )
-from test_new_api_permit import (
+from test_permit import (
     permit_availability, permit_availability_data,
     permit_inyo_availability, permit_inyo_availability_data
 )

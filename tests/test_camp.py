@@ -2,7 +2,7 @@ import datetime as dt
 import pytest
 from typing import Any, Dict
 
-from recreation.newapi.api_camp import (
+from recreation.api_camp import (
     CampsiteAvailabilityStatus,
     RGApiCampground,
     RGApiCampgroundAvailability,

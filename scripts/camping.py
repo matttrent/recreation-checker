@@ -21,7 +21,7 @@ from rich.padding import Padding
 from rich.table import Table
 from rich.text import Text
 
-from recreation.newapi.models import Campground, Permit
+from recreation.models import Campground, Permit
 
 
 console = Console()

@@ -3,16 +3,16 @@ import pytest
 
 import responses
 
-from recreation.newapi.api_client import (
+from recreation.api_client import (
     RecreationGovEndpoint,
     RecreationGovClient,
 )
 
-from test_new_api_camp import (
+from test_camp import (
     campsite_data, campsite, campground_data, campground, 
     campground_availability_data, campground_availability
 )
-from test_new_api_permit import (
+from test_permit import (
     permit_data, permit, permit_division_data, permit_entrance_data,
     permit_availability_data, permit_availability, permit_inyo_availability_data, 
     permit_inyo_availability

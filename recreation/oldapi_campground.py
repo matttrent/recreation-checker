@@ -6,7 +6,7 @@ from typing import Any, Iterable, Optional, cast
 
 from dateutil import rrule
 
-from recreation.core import (
+from recreation.oldapi_core import (
     BASE_URL,
     ApiResponse,
     ItemId,

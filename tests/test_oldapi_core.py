@@ -1,6 +1,6 @@
 import datetime as dt
 
-from recreation import core
+from recreation import oldapi_core as core
 
 
 def test_format_date() -> None:

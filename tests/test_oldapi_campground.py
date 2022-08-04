@@ -3,7 +3,7 @@ from typing import Any
 
 import responses
 
-from recreation import campground
+from recreation import oldapi_campground as campground
 
 
 def test_site_availability() -> None:

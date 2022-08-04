@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import click
 
-from recreation.campground import Campground
+from recreation.oldapi_campground import Campground
 
 INPUT_DATE_FORMAT = "%Y-%m-%d"
 DATE_TYPE = click.DateTime(formats=[INPUT_DATE_FORMAT])

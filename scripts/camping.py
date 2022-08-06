@@ -84,6 +84,8 @@ def campground_avail(
     camp.fetch_campsites()
     avail = camp.fetch_availability(sdate, edate)
 
+    avail = avail.filter_dates(sdate, edate)
+
     if site_ids:
         sids = site_ids.split(",")
         avail = avail.filter_id(sids)
@@ -187,6 +189,8 @@ def permit_avail(
 
     permit = Permit.fetch(permit_id)
     avail = permit.fetch_availability(sdate, edate)
+
+    avail = avail.filter_dates(sdate, edate)
 
     if division_ids:
         dids = division_ids.split(",")

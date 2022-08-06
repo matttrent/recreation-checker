@@ -1,8 +1,5 @@
 import datetime as dt
 
-from distutils import core
-from typing import Union
-
 import apiclient.exceptions
 import backoff
 

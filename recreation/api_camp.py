@@ -1,7 +1,7 @@
 import datetime as dt
 import enum
 import itertools
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Extra, Field
 
@@ -55,10 +55,6 @@ class RGApiCampground(BaseModel):
     class Config:
         extra = Extra.ignore
 
-    # def __init__(self, **data: Any) -> None:
-    #     print("facility_type", data["facility_type"])
-    #     super().__init__(**data)
-
     def __repr__(self) -> str:
         return f"{self.__repr_name__()}(id={self.id}, name={self.name})"
 
@@ -81,12 +77,6 @@ class RGApiCampsite(BaseModel):
     class Config:
         extra = Extra.ignore
 
-    # def __init__(self, **data: Any) -> None:
-    #     print("campsite_reserve_type", data["campsite_reserve_type"])
-    #     print("campsite_status", data["campsite_status"])
-    #     print("campsite_type", data["campsite_type"])
-    #     super().__init__(**data)
-
     def __repr__(self) -> str:
         return f"{self.__repr_name__()}(id={self.id}, name={self.name}, type={self.campsite_type}, status={self.status})"
 
@@ -107,12 +97,6 @@ class RgApiCampsiteAvailability(BaseModel):
 
     class Config:
         extra = Extra.ignore
-
-    # def __init__(self, **data: Any) -> None:
-    #     print("campsite_reserve_type", data["campsite_reserve_type"])
-    #     print("campsite_type", data["campsite_type"])
-    #     print("availability types", set(t for t in data["availabilities"].values()))
-    #     super().__init__(**data)
 
     def __repr__(self) -> str:
         return f"{self.__repr_name__()}(id={self.id})"
@@ -142,10 +126,3 @@ class RGApiCampgroundAvailability(BaseModel):
 
     def __str__(self) -> str:
         return self.__repr__()
-
-    # def get_availability(self, campsite_id: IntOrStr, date: dt.date) -> str:
-    #     cid = str(campsite_id)
-    #     key = dt.datetime(date.year, date.month, date.day, tzinfo=dt.timezone.utc)
-    #     return self.campsites[cid].availabilities[key]
-
-

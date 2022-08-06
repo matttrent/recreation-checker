@@ -11,7 +11,6 @@ camping.py
 """
 
 import datetime as dt
-from math import perm
 
 import typer
 

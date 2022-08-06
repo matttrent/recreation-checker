@@ -13,9 +13,7 @@ from .api_permit import (
     RGApiPermitAvailability,
     RGApiPermitInyoAvailability,
 )
-
-
-IntOrStr = Union[int, str]
+from .core import IntOrStr
 
 
 @dataclass
@@ -136,7 +134,7 @@ class CampgroundAvailabilityList(AvailabilityList):
     def from_campground(
         availability_months: list[RGApiCampgroundAvailability],
         aggregate: bool = True
-    ) -> "CampgroupAvailabilityList":
+    ) -> "CampgroundAvailabilityList":
 
         availability: list[CampgroundAvailability] = []
 

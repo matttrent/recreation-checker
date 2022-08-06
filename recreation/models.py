@@ -1,22 +1,20 @@
 import datetime as dt
-import functools
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterable, Optional, Any, Union
+from typing import Iterable, Optional, Any
 from dateutil import rrule
 
 from apiclient.exceptions import ClientError
 
 
+from .core import IntOrStr
 from.availability_list import (
-    BaseAvailability, CampgroundAvailability, CampgroundAvailabilityList, 
-    PermitAvailability, PermitAvailabilityList
+    CampgroundAvailabilityList, 
+    PermitAvailabilityList,
 )
 from .api_camp import (
     RGApiCampground,
     RGApiCampsite,
-    RGApiCampgroundAvailability,
-    CampsiteAvailabilityStatus,
 )
 from .api_client import (
     RecreationGovClient
@@ -25,12 +23,7 @@ from .api_permit import (
     RgApiPermitDivision,
     RgApiPermitEntrance,
     RGApiPermit,
-    RGApiPermitAvailability,
-    RGApiPermitInyoAvailability,
 )
-
-
-IntOrStr = Union[int, str]
 
 
 POOL_NUM_WORKERS = 16

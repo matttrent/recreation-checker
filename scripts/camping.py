@@ -43,6 +43,13 @@ def campground_info(camp_id: str):
     name = Text(camp.name, style="bold blue")
     console.print(name)
 
+    camptab = Table(title="Campground fields", box=box.SIMPLE_HEAD)
+    camptab.add_column("Field")
+    camptab.add_column("Value")
+    for k, v in camp.api_campground.dict().items():
+        camptab.add_row(k, str(v))
+    console.print(camptab)
+
     sitetab = Table(title="Campsites", box=box.SIMPLE_HEAD)
     sitetab.add_column("Name")
     sitetab.add_column("ID")
@@ -123,8 +130,13 @@ def permit_info(permit_id: str):
     name = Text(permit.name, style="bold blue")
     console.print(name)
 
-    idtxt = Padding(Text(f"id: {permit.id}"), (0, 4))
-    console.print(idtxt)
+    permtab = Table(title="Permit fields", box=box.SIMPLE_HEAD)
+    permtab.add_column("Field")
+    permtab.add_column("Value")
+    for k, v in permit.api_permit.dict().items():
+        if k not in ["divisions", "entrance_list"]:
+            permtab.add_row(k, str(v))
+    console.print(permtab)
 
     divtab = Table(title="Divisions", box=box.SIMPLE_HEAD)
     divtab.add_column("Name")

@@ -3,7 +3,7 @@ import pytest
 
 import responses
 
-from recreation.api_client import (
+from recreation.api.client import (
     RecreationGovEndpoint,
     RecreationGovClient,
 )

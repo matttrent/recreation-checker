@@ -1,7 +1,7 @@
 import datetime as dt
 import pytest
 
-from recreation.api_camp import CampsiteAvailabilityStatus
+from recreation.api.camp import CampsiteAvailabilityStatus
 
 from recreation.availability_list import (
     CampgroundAvailability,

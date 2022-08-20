@@ -12,14 +12,14 @@ from.availability_list import (
     CampgroundAvailabilityList, 
     PermitAvailabilityList,
 )
-from .api_camp import (
+from .api.camp import (
     RGApiCampground,
     RGApiCampsite,
 )
-from .api_client import (
+from .api.client import (
     RecreationGovClient
 )
-from .api_permit import (
+from .api.permit import (
     RgApiPermitDivision,
     RgApiPermitEntrance,
     RGApiPermit,

@@ -12,13 +12,13 @@ from apiclient import (
 from apiclient_pydantic import serialize_all_methods
 from fake_useragent import UserAgent
 
-from .api_camp import (
+from .camp import (
     RGApiCampground,
     RGApiCampsite,
     RGApiCampgroundAvailability,
 )
-from .core import IntOrStr
-from .api_permit import (
+from ..core import IntOrStr
+from .permit import (
     RGApiPermit,
     RGApiPermitAvailability,
     RGApiPermitInyoAvailability,

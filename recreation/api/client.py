@@ -12,12 +12,13 @@ from apiclient import (
 from apiclient_pydantic import serialize_all_methods
 from fake_useragent import UserAgent
 
+from ..core import IntOrStr
 from .camp import (
     RGApiCampground,
     RGApiCampsite,
     RGApiCampgroundAvailability,
 )
-from ..core import IntOrStr
+from .extra import LocationType, RGAapiAlert
 from .permit import (
     RGApiPermit,
     RGApiPermitAvailability,
@@ -44,14 +45,6 @@ class RecreationGovEndpoint:
     permitinyo_availability = "permitinyo/{id}/availability"
 
 
-# class JsonPayloadResponseHandler(JsonResponseHandler):
-    
-#     @staticmethod
-#     def get_request_data(response: Response) -> Optional[JsonType]:
-#         response_json = JsonResponseHandler.get_request_data(response)
-#         return response_json["payload"]
-
-
 @serialize_all_methods()
 class RecreationGovClient(APIClient):
 
@@ -71,7 +64,6 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.campground.format(id=campground_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
-        # print("facility_type", resp["campground"]["facility_type"])
         return resp["campground"]
 
     @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)
@@ -79,8 +71,6 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.campsite.format(id=campsite_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
-        # print("campsite_status", resp["campsite"]["campsite_status"])
-        # print("campsite_type", resp["campsite"]["campsite_type"])
         return resp["campsite"]
 
     @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)
@@ -88,14 +78,20 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.permit.format(id=permit_id)
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
-
-        # division_types = set(
-        #     divis["type"]
-        #     for divis in resp["payload"]["divisions"].values()
-        # )
-        # print("division types", division_types)
-
         return resp["payload"]
+
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)
+    def get_alerts(
+        self, location_id: IntOrStr, location_type: LocationType
+    ) -> list[RGAapiAlert]:
+        url = RecreationGovEndpoint.alert.format()
+        headers = self.get_default_headers()
+        params = {
+            "location_id": location_id,
+            "location_type": location_type.value
+        }
+        resp = self.get(url, headers=headers, params=params)
+        return resp["alerts"]
 
     @staticmethod
     def _format_date(date_object: dt.datetime, with_ms: bool = True) -> str:
@@ -114,19 +110,6 @@ class RecreationGovClient(APIClient):
             "start_date": self._format_date(start_date)
         }
         resp = self.get(url, headers=headers, params=params)
-
-        # campsite_reserve_types = set(
-        #     campsite["campsite_reserve_type"]
-        #     for campsite in resp["campsites"].values()
-        # )
-        # print("campsite reserve types", campsite_reserve_types)
-
-        # campsite_types = set(
-        #     campsite["campsite_type"]
-        #     for campsite in resp["campsites"].values()
-        # )
-        # print("campsite types", campsite_types)
-
         return resp
 
     @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)

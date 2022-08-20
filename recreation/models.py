@@ -1,11 +1,11 @@
 import datetime as dt
 
 from concurrent.futures import ThreadPoolExecutor
+from http import client
 from typing import Iterable, Optional, Any
 from dateutil import rrule
 
 from apiclient.exceptions import ClientError
-
 
 from .core import IntOrStr
 from.availability_list import (
@@ -19,6 +19,7 @@ from .api.camp import (
 from .api.client import (
     RecreationGovClient
 )
+from .api.extra import LocationType, RGAapiAlert
 from .api.permit import (
     RgApiPermitDivision,
     RgApiPermitEntrance,
@@ -67,15 +68,22 @@ class Campground:
     api_campground: RGApiCampground
 
     campsites: dict[str, RGApiCampsite] = {}
+    alerts: list[RGAapiAlert] = []
 
     def __init__(self, api_camgground: RGApiCampground):
         self.api_campground = api_camgground
 
     @staticmethod
-    def fetch(campground_id: IntOrStr) -> "Campground":
+    def fetch(campground_id: IntOrStr, fetch_all: bool = False) -> "Campground":
         client = RecreationGovClient()
         campground = client.get_campground(campground_id)
-        return Campground(campground)
+        camp = Campground(campground)
+
+        if fetch_all:
+            camp.fetch_campsites()
+            camp.fetch_alerts()
+
+        return camp
 
     def __getattr__(self, attr: str) -> Any:
         if attr not in self.api_campground.__fields__:
@@ -92,6 +100,10 @@ class Campground:
                 site.id: site
                 for site in executor.map(Campsite.fetch, self.campsite_ids)
             }
+
+    def fetch_alerts(self) -> None:
+        client = RecreationGovClient()
+        self.alerts = client.get_alerts(self.id, LocationType.campground)
 
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None,
@@ -131,6 +143,7 @@ class Permit:
     api_permit: RGApiPermit
 
     entrances: dict[str, RgApiPermitEntrance]
+    alerts: list[RGAapiAlert] = []
 
     def __init__(self, api_permit: RGApiPermit):
         self.api_permit = api_permit
@@ -141,12 +154,18 @@ class Permit:
         }
 
     @staticmethod
-    def fetch(permit_id: IntOrStr) -> "Permit":
+    def fetch(permit_id: IntOrStr, fetch_all: bool = False) -> "Permit":
         client = RecreationGovClient()
         if permit_id in PERMIT_IDS:
             permit_id = PERMIT_IDS[permit_id]
         permit = client.get_permit(permit_id)
-        return Permit(permit)
+        
+        perm = Permit(permit)
+
+        if fetch_all:
+            perm.fetch_alerts()
+
+        return perm
 
     def __getattr__(self, attr: str) -> Any:
         if attr not in self.api_permit.__fields__:
@@ -170,6 +189,10 @@ class Permit:
                 return divis
 
         raise IndexError(f"Division with {name} not found")
+
+    def fetch_alerts(self) -> None:
+        client = RecreationGovClient()
+        self.alerts = client.get_alerts(self.id, LocationType.permit)
 
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None

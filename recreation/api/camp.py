@@ -13,11 +13,14 @@ class CampgroundType(str, enum.Enum):
 class CampsiteType(str, enum.Enum):
     cabin_electric = "CABIN ELECTRIC"
     cabin_nonelectric = "CABIN NONELECTRIC"
+    group_tetn_only_area_nonelectric = "GROUP TENT ONLY AREA NONELECTRIC"
     lookout = "LOOKOUT"
     management = "MANAGEMENT"
     rv_nonelectric = "RV NONELECTRIC"
+    standard_electric = "STANDARD ELECTRIC"
     standard_nonelectric = "STANDARD NONELECTRIC"
     tent_only_nonelectric = "TENT ONLY NONELECTRIC"
+    walk_to = "WALK TO"
 
 
 class CampsiteStatus(str, enum.Enum):

@@ -1,6 +1,7 @@
 import datetime as dt
 import enum
 import itertools
+from typing import Any
 
 from pydantic import BaseModel, Extra, Field, PrivateAttr
 
@@ -62,7 +63,7 @@ class RGApiPermit(BaseModel):
 
     _entrances: dict[str, RgApiPermitEntrance] = PrivateAttr()
 
-    def __init__(self, **data) -> None:
+    def __init__(self, **data: dict[str, Any]) -> None:
         super().__init__(**data)
 
         self._entrances = {

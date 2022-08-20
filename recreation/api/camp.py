@@ -1,7 +1,7 @@
 import datetime as dt
 import enum
 import itertools
-from typing import Dict, List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Extra, Field
 
@@ -41,7 +41,7 @@ class CampsiteAvailabilityStatus(str, enum.Enum):
 
 
 class RGApiCampground(BaseModel):
-    campsite_ids: List[str] = Field(..., alias="campsites")
+    campsite_ids: list[str] = Field(..., alias="campsites")
     email:  Optional[str] = Field(..., alias="facility_email")
     id: str = Field(..., alias="facility_id")
     latitude: float = Field(..., alias="facility_latitude")
@@ -85,7 +85,7 @@ class RGApiCampsite(BaseModel):
 
 
 class RgApiCampsiteAvailability(BaseModel):
-    availabilities: Dict[dt.datetime, CampsiteAvailabilityStatus]
+    availabilities: dict[dt.datetime, CampsiteAvailabilityStatus]
     id: str = Field(..., alias="campsite_id")
     reserve_type: CampsiteReserveType = Field(..., alias="campsite_reserve_type")
     campsite_type: CampsiteType
@@ -106,7 +106,7 @@ class RgApiCampsiteAvailability(BaseModel):
 
 
 class RGApiCampgroundAvailability(BaseModel):
-    campsites: Dict[str, RgApiCampsiteAvailability]
+    campsites: dict[str, RgApiCampsiteAvailability]
 
     class Config:
         extra = Extra.ignore

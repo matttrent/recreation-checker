@@ -52,9 +52,11 @@ def campground_info(camp_id: str):
     camptab = Table(title="Campground fields", box=box.SIMPLE_HEAD)
     camptab.add_column("Field")
     camptab.add_column("Value")
-    for k, v in camp.dict().items():
+    for k, v in camp.api_campground.dict().items():
         if k not in ["campsite_ids"]:
             camptab.add_row(k, str(v))
+    for rating in camp.ratings.aggregate_cell_coverage_ratings:
+        camptab.add_row(rating.carrier, f"{rating.average_rating:.1f}")
     console.print(camptab)
 
     sitetab = Table(title="Campsites", box=box.SIMPLE_HEAD)
@@ -154,9 +156,11 @@ def permit_info(permit_id: str):
     permtab = Table(title="Permit fields", box=box.SIMPLE_HEAD)
     permtab.add_column("Field")
     permtab.add_column("Value")
-    for k, v in permit.dict().items():
+    for k, v in permit.api_permit.dict().items():
         if k not in ["divisions", "entrance_list"]:
             permtab.add_row(k, str(v))
+    for rating in permit.ratings.aggregate_cell_coverage_ratings:
+        permtab.add_row(rating.carrier, f"{rating.average_rating:.1f}")
     console.print(permtab)
 
     divtab = Table(title="Divisions", box=box.SIMPLE_HEAD)

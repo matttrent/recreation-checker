@@ -19,7 +19,7 @@ from .api.camp import (
 from .api.client import (
     RecreationGovClient
 )
-from .api.extra import LocationType, RGAapiAlert
+from .api.extra import LocationType, RGAapiAlert, RGApiRatingAggregate
 from .api.permit import (
     RgApiPermitDivision,
     RgApiPermitEntrance,
@@ -69,6 +69,7 @@ class Campground:
 
     campsites: dict[str, RGApiCampsite] = {}
     alerts: list[RGAapiAlert] = []
+    ratings: RGApiRatingAggregate
 
     def __init__(self, api_camgground: RGApiCampground):
         self.api_campground = api_camgground
@@ -82,6 +83,7 @@ class Campground:
         if fetch_all:
             camp.fetch_campsites()
             camp.fetch_alerts()
+            camp.fetch_ratings()
 
         return camp
 
@@ -104,6 +106,10 @@ class Campground:
     def fetch_alerts(self) -> None:
         client = RecreationGovClient()
         self.alerts = client.get_alerts(self.id, LocationType.campground)
+
+    def fetch_ratings(self) -> None:
+        client = RecreationGovClient()
+        self.ratings = client.get_ratings(self.id, LocationType.campground)
 
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None,
@@ -144,6 +150,7 @@ class Permit:
 
     entrances: dict[str, RgApiPermitEntrance]
     alerts: list[RGAapiAlert] = []
+    ratings: RGApiRatingAggregate
 
     def __init__(self, api_permit: RGApiPermit):
         self.api_permit = api_permit
@@ -164,6 +171,7 @@ class Permit:
 
         if fetch_all:
             perm.fetch_alerts()
+            perm.fetch_ratings()
 
         return perm
 
@@ -193,6 +201,10 @@ class Permit:
     def fetch_alerts(self) -> None:
         client = RecreationGovClient()
         self.alerts = client.get_alerts(self.id, LocationType.permit)
+
+    def fetch_ratings(self) -> None:
+        client = RecreationGovClient()
+        self.ratings = client.get_ratings(self.id, LocationType.campground)
 
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None

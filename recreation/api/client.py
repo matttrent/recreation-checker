@@ -18,7 +18,7 @@ from .camp import (
     RGApiCampsite,
     RGApiCampgroundAvailability,
 )
-from .extra import LocationType, RGAapiAlert
+from .extra import LocationType, RGAapiAlert, RGApiRatingAggregate
 from .permit import (
     RGApiPermit,
     RGApiPermitAvailability,
@@ -34,11 +34,12 @@ BACKOFF_TRIES = 5
 
 @endpoint(base_url="https://www.recreation.gov/api")
 class RecreationGovEndpoint:
-    alert = "communication/external/alert"
-
     campground = "camps/campgrounds/{id}"
     campsite = "camps/campsites/{id}"
     permit = "permitcontent/{id}"
+
+    alert = "communication/external/alert"
+    rating_aggregate = "ratingreview/aggregate"
 
     campground_availability = "camps/availability/campground/{id}/month"
     permit_availability = "permits/{id}/availability/month" 
@@ -92,6 +93,19 @@ class RecreationGovClient(APIClient):
         }
         resp = self.get(url, headers=headers, params=params)
         return resp["alerts"]
+
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)
+    def get_ratings(
+        self, location_id: IntOrStr, location_type: LocationType
+    ) -> RGApiRatingAggregate:
+        url = RecreationGovEndpoint.rating_aggregate.format()
+        headers = self.get_default_headers()
+        params = {
+            "location_id": location_id,
+            "location_type": location_type.value
+        }
+        resp = self.get(url, headers=headers, params=params)
+        return resp
 
     @staticmethod
     def _format_date(date_object: dt.datetime, with_ms: bool = True) -> str:

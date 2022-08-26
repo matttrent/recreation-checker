@@ -48,7 +48,7 @@ class Campsite:
         self.api_campsite = api_campsite
 
     @staticmethod
-    def fetch(campsite_id: IntOrStr) -> "Campsite":
+    def fetch(campsite_id: IntOrStr, fetch_all: bool = False) -> "Campsite":
         client = RecreationGovClient()
         campsite = client.get_campsite(campsite_id)
         return Campsite(campsite)
@@ -67,7 +67,7 @@ class Campground:
 
     api_campground: RGApiCampground
 
-    campsites: dict[str, RGApiCampsite] = {}
+    campsites: dict[str, Campsite] = {}
     alerts: list[RGAapiAlert] = []
     ratings: RGApiRatingAggregate
 
@@ -204,7 +204,7 @@ class Permit:
 
     def fetch_ratings(self) -> None:
         client = RecreationGovClient()
-        self.ratings = client.get_ratings(self.id, LocationType.campground)
+        self.ratings = client.get_ratings(self.id, LocationType.permit)
 
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None

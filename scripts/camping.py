@@ -42,16 +42,18 @@ def campground_info(camp_id: str):
     name = Text(camp.name, style="bold blue")
     console.print(name)
 
-    alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-    alerttab.add_column()
-    alerttab.add_column()
-    for alert in camp.alerts:
-        alerttab.add_row("⚠️", alert.body, style="red")
-    console.print(alerttab)
+    if len(camp.alerts):
+        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
+        alerttab.add_column()
+        alerttab.add_column()
+        for alert in camp.alerts:
+            alerttab.add_row("⚠️", alert.body, style="red")
+        console.print(alerttab)
 
     camptab = Table(title="Campground fields", box=box.SIMPLE_HEAD)
     camptab.add_column("Field")
     camptab.add_column("Value")
+    camptab.add_row("URL", f"[link={camp.url}]{camp.url}[/link]")
     for k, v in camp.api_campground.dict().items():
         if k not in ["campsite_ids"]:
             camptab.add_row(k, str(v))
@@ -70,7 +72,7 @@ def campground_info(camp_id: str):
     sites = sorted(camp.campsites.values(), key=lambda x: x.id)
     for site in sites:
         sitetab.add_row(
-            site.name,
+            f"[link={site.url}]{site.name}[/link]",
             str(site.id),
             site.status.value,
             site.campsite_type.value,
@@ -98,12 +100,13 @@ def campground_avail(
 
     camp = Campground.fetch(camp_id, fetch_all=True)
 
-    alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-    alerttab.add_column()
-    alerttab.add_column()
-    for alert in camp.alerts:
-        alerttab.add_row("⚠️", alert.body, style="red")
-    console.print(alerttab)
+    if len(camp.alerts):
+        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
+        alerttab.add_column()
+        alerttab.add_column()
+        for alert in camp.alerts:
+            alerttab.add_row("⚠️", alert.body, style="red")
+        console.print(alerttab)
 
     avail = camp.fetch_availability(sdate, edate)
     avail = avail.filter_dates(sdate, edate)
@@ -146,16 +149,18 @@ def permit_info(permit_id: str):
     name = Text(permit.name, style="bold blue")
     console.print(name)
 
-    alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-    alerttab.add_column()
-    alerttab.add_column()
-    for alert in permit.alerts:
-        alerttab.add_row("⚠️", alert.body, style="red")
-    console.print(alerttab)
+    if len(permit.alerts):
+        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
+        alerttab.add_column()
+        alerttab.add_column()
+        for alert in permit.alerts:
+            alerttab.add_row("⚠️", alert.body, style="red")
+        console.print(alerttab)
 
     permtab = Table(title="Permit fields", box=box.SIMPLE_HEAD)
     permtab.add_column("Field")
     permtab.add_column("Value")
+    permtab.add_row("URL", f"[link={permit.url}]{permit.url}[/link]")
     for k, v in permit.api_permit.dict().items():
         if k not in ["divisions", "entrance_list"]:
             permtab.add_row(k, str(v))
@@ -226,12 +231,13 @@ def permit_avail(
 
     permit = Permit.fetch(permit_id, fetch_all=True)
 
-    alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-    alerttab.add_column()
-    alerttab.add_column()
-    for alert in permit.alerts:
-        alerttab.add_row("⚠️", alert.body, style="red")
-    console.print(alerttab)
+    if len(permit.alerts):
+        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
+        alerttab.add_column()
+        alerttab.add_column()
+        for alert in permit.alerts:
+            alerttab.add_row("⚠️", alert.body, style="red")
+        console.print(alerttab)
 
     avail = permit.fetch_availability(sdate, edate)
     avail = avail.filter_dates(sdate, edate)

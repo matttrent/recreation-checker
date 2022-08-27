@@ -1,4 +1,5 @@
 import enum
+from typing import Optional
 
 from pydantic import BaseModel, Extra, Field
 
@@ -25,7 +26,7 @@ class RGApiCarrierRating(BaseModel):
     average_rating: float
     carrier: str
     number_of_ratings: int
-    star_counts: dict[int, int]
+    star_counts: Optional[dict[int, int]]
 
 
 class RGApiRatingAggregate(BaseModel):

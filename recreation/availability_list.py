@@ -21,6 +21,9 @@ class BaseAvailability:
     id: str
     date: dt.date
 
+    @property
+    def end_date(self) -> dt.date:
+        return self.date
 
 @dataclass
 class CampgroundAvailability(BaseAvailability):
@@ -63,7 +66,7 @@ class AvailabilityList:
     ) -> "AvailabilityList":
         availability = self.availability
         if start_date:
-            availability = [avail for avail in availability if avail.date >= start_date]
+            availability = [avail for avail in availability if avail.end_date >= start_date]
         if end_date:
             availability = [avail for avail in availability if avail.date <= end_date]
         return self.__class__(availability)

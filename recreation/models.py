@@ -127,9 +127,12 @@ class Campground:
             + (end_month.month - start_month.month)
             + 1
         )
-        months: Iterable[dt.date] = rrule.rrule(
-            freq=rrule.MONTHLY, dtstart=start_month, count=n_months
-        )
+        months: Iterable[dt.date] = [
+            m.date()
+            for m in rrule.rrule(
+                freq=rrule.MONTHLY, dtstart=start_month, count=n_months
+            )
+        ]
 
         client = RecreationGovClient()
         def get_campground_partial(month: dt.date):
@@ -221,9 +224,12 @@ class Permit:
             + (end_month.month - start_month.month)
             + 1
         )
-        months: Iterable[dt.date] = rrule.rrule(
-            freq=rrule.MONTHLY, dtstart=start_month, count=n_months
-        )
+        months: Iterable[dt.date] = [
+            m.date()
+            for m in rrule.rrule(
+                freq=rrule.MONTHLY, dtstart=start_month, count=n_months
+            )
+        ]
 
         client = RecreationGovClient()
         try:

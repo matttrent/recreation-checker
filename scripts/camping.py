@@ -20,6 +20,7 @@ from rich.padding import Padding
 from rich.table import Table
 from rich.text import Text
 
+from recreation.api.camp import CampsiteAvailabilityStatus
 from recreation.models import Campground, Permit
 
 
@@ -119,7 +120,8 @@ def campground_avail(
         avail = avail.filter_length(length)
 
     if status:
-        avail = avail.filter_status(status)
+        status_enum = CampsiteAvailabilityStatus[status]
+        avail = avail.filter_status(status_enum)
 
     availtab = Table(title="Available campsites", box=box.SIMPLE_HEAD)
     availtab.add_column("Campsite name")

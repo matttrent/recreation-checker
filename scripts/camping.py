@@ -12,6 +12,8 @@ camping.py
 
 import datetime as dt
 
+from typing import Optional
+
 import typer
 
 from rich import box
@@ -21,10 +23,24 @@ from rich.table import Table
 from rich.text import Text
 
 from recreation.api.camp import CampsiteAvailabilityStatus
-from recreation.models import Campground, Permit
+from recreation.models import Campground, Permit, RGAapiAlert
 
 
 console = Console()
+
+
+def alert_table(alerts: list[RGAapiAlert]) -> Optional[Table]:
+
+    alerttab = Table(
+        title="Alerts", box=box.HORIZONTALS, style="red", show_header=False
+    )
+
+    if len(alerts):
+        for alert in alerts:
+            alerttab.add_row("⚠️", alert.body.strip(), style="red", end_section=True)
+        return alerttab
+    
+    return alerttab
 
 
 app = typer.Typer()
@@ -43,13 +59,7 @@ def campground_info(camp_id: str):
     name = Text(camp.name, style="bold blue")
     console.print(name)
 
-    if len(camp.alerts):
-        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-        alerttab.add_column()
-        alerttab.add_column()
-        for alert in camp.alerts:
-            alerttab.add_row("⚠️", alert.body, style="red")
-        console.print(alerttab)
+    console.print(alert_table(camp.alerts))
 
     camptab = Table(title="Campground fields", box=box.SIMPLE_HEAD)
     camptab.add_column("Field")
@@ -101,13 +111,7 @@ def campground_avail(
 
     camp = Campground.fetch(camp_id, fetch_all=True)
 
-    if len(camp.alerts):
-        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-        alerttab.add_column()
-        alerttab.add_column()
-        for alert in camp.alerts:
-            alerttab.add_row("⚠️", alert.body, style="red")
-        console.print(alerttab)
+    console.print(alert_table(camp.alerts))
 
     avail = camp.fetch_availability(sdate, edate)
     avail = avail.filter_dates(sdate, edate)
@@ -151,13 +155,7 @@ def permit_info(permit_id: str):
     name = Text(permit.name, style="bold blue")
     console.print(name)
 
-    if len(permit.alerts):
-        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-        alerttab.add_column()
-        alerttab.add_column()
-        for alert in permit.alerts:
-            alerttab.add_row("⚠️", alert.body, style="red")
-        console.print(alerttab)
+    console.print(alert_table(permit.alerts))
 
     permtab = Table(title="Permit fields", box=box.SIMPLE_HEAD)
     permtab.add_column("Field")
@@ -233,13 +231,7 @@ def permit_avail(
 
     permit = Permit.fetch(permit_id, fetch_all=True)
 
-    if len(permit.alerts):
-        alerttab = Table(title="Alerts", box=box.SQUARE, style="red")
-        alerttab.add_column()
-        alerttab.add_column()
-        for alert in permit.alerts:
-            alerttab.add_row("⚠️", alert.body, style="red")
-        console.print(alerttab)
+    console.print(alert_table(permit.alerts))
 
     avail = permit.fetch_availability(sdate, edate)
     avail = avail.filter_dates(sdate, edate)

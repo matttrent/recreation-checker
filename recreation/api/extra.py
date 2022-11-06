@@ -13,7 +13,7 @@ class AlertLevel(str, enum.Enum):
     warning = "WARNING"
 
 
-class RGAapiAlert(BaseModel):
+class RGApiAlert(BaseModel):
     alert_level: AlertLevel
     body: str
     location_id: str

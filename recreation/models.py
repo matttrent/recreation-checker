@@ -19,7 +19,7 @@ from .api.camp import (
 from .api.client import (
     RecreationGovClient
 )
-from .api.extra import LocationType, RGAapiAlert, RGApiRatingAggregate
+from .api.extra import LocationType, RGApiAlert, RGApiRatingAggregate
 from .api.permit import (
     RgApiPermitDivision,
     RgApiPermitEntrance,
@@ -68,7 +68,7 @@ class Campground:
     api_campground: RGApiCampground
 
     campsites: dict[str, Campsite] = {}
-    alerts: list[RGAapiAlert] = []
+    alerts: list[RGApiAlert] = []
     ratings: RGApiRatingAggregate
 
     def __init__(self, api_camgground: RGApiCampground):
@@ -152,7 +152,7 @@ class Permit:
     api_permit: RGApiPermit
 
     entrances: dict[str, RgApiPermitEntrance]
-    alerts: list[RGAapiAlert] = []
+    alerts: list[RGApiAlert] = []
     ratings: RGApiRatingAggregate
 
     def __init__(self, api_permit: RGApiPermit):

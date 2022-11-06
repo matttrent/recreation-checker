@@ -18,7 +18,7 @@ from .camp import (
     RGApiCampsite,
     RGApiCampgroundAvailability,
 )
-from .extra import LocationType, RGAapiAlert, RGApiRatingAggregate
+from .extra import LocationType, RGApiAlert, RGApiRatingAggregate
 from .permit import (
     RGApiPermit,
     RGApiPermitAvailability,
@@ -84,7 +84,7 @@ class RecreationGovClient(APIClient):
     @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)
     def get_alerts(
         self, location_id: IntOrStr, location_type: LocationType
-    ) -> list[RGAapiAlert]:
+    ) -> list[RGApiAlert]:
         url = RecreationGovEndpoint.alert.format()
         headers = self.get_default_headers()
         params = {

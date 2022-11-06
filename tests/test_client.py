@@ -1,4 +1,5 @@
 import datetime as dt
+from typing import Any
 import pytest
 
 import responses
@@ -7,6 +8,7 @@ from recreation.api.client import (
     RecreationGovEndpoint,
     RecreationGovClient,
 )
+from recreation.api.extra import RGApiAlert, RGApiRatingAggregate
 
 from test_camp import (
     campsite_data, campsite, campground_data, campground, 
@@ -25,17 +27,68 @@ def recreation_client():
 
 
 @pytest.fixture
-def campsite_response(campsite_data):
+def alerts_data() -> list[dict]:
+    return [
+        {
+            "alert_level": "WARNING",
+            "body": "This is a test alert",
+            "location_id": "123",
+            "location_name": "Test Location",
+            "location_type": "Campground",
+            "priority": 1,
+        },
+        {
+            "alert_level": "WARNING",
+            "body": "This is a test alert",
+            "location_id": "123",
+            "location_name": "Test Location 2",
+            "location_type": "Campground",
+            "priority": 2,
+        }
+    ]
+
+@pytest.fixture
+def alerts(alerts_data) -> list[RGApiAlert]:
+    return [
+        RGApiAlert(**alert_data) for alert_data in alerts_data
+    ]
+
+
+@pytest.fixture
+def ratings_data() -> dict[str, Any]:
     return {
-        "payload": campsite_data
+        "aggregate_cell_coverage_ratings": [
+            {
+                "average_rating": 4.0,
+                "carrier": "Verizon",
+                "number_of_ratings": 1,
+            },
+            {
+                "average_rating": 3.0,
+                "carrier": "AT&T",
+                "number_of_ratings": 1,
+            },
+            {
+                "average_rating": 3.5,
+                "carrier": "Sprint",
+                "number_of_ratings": 2,
+            },
+        ],
+        "average_rating": 3.5,
+        "location_id": "123",
+        "location_type": "Campground",
+        "number_of_ratings": 20,
+        "star_counts": {
+            1: 1,
+            2: 2,
+            3: 3,
+        },
     }
 
 
 @pytest.fixture
-def campground_response(campground_response):
-    return {
-        "payload": campground_response
-    }
+def ratings(ratings_data) -> RGApiRatingAggregate:
+    return RGApiRatingAggregate(**ratings_data)
 
 
 def test_endpoint():
@@ -194,3 +247,38 @@ def test_client_get_permit_inyo_availability(
         permit_id, start_date=start_date
     )
     assert test_availability == permit_inyo_availability
+
+
+@responses.activate
+def test_client_get_alerts(recreation_client, alerts_data, alerts):
+
+    campground_id = 123
+    location_type = "Campground"
+    resp = {
+        "alerts": alerts_data
+    }
+    responses.add(
+        responses.GET,
+        f"https://www.recreation.gov/api/communication/external/alert",
+        json=resp,
+        status=200,
+    )
+
+    test_alerts = recreation_client.get_alerts(campground_id, location_type)
+    assert test_alerts == alerts
+
+
+@responses.activate
+def test_client_get_ratings(recreation_client, ratings_data, ratings):
+
+    campground_id = 123
+    location_type = "Campground"
+    responses.add(
+        responses.GET,
+        f"https://www.recreation.gov/api/ratingreview/aggregate",
+        json=ratings_data,
+        status=200,
+    )
+
+    test_ratings = recreation_client.get_ratings(campground_id, location_type)
+    assert test_ratings == ratings

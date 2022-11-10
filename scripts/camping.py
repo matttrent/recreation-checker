@@ -23,13 +23,14 @@ from rich.table import Table
 from rich.text import Text
 
 from recreation.api.camp import CampsiteAvailabilityStatus
-from recreation.models import Campground, Permit, RGAapiAlert
+from recreation.availability_list import CampgroundAvailabilityList
+from recreation.models import Campground, Permit, RGApiAlert, POOL_NUM_WORKERS
 
 
 console = Console()
 
 
-def alert_table(alerts: list[RGAapiAlert]) -> Optional[Table]:
+def alert_table(alerts: list[RGApiAlert]) -> Optional[Table]:
 
     alerttab = Table(
         title="Alerts", box=box.HORIZONTALS, style="red", show_header=False

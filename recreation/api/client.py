@@ -35,6 +35,7 @@ BACKOFF_TRIES = 5
 @endpoint(base_url="https://www.recreation.gov/api")
 class RecreationGovEndpoint:
     campground = "camps/campgrounds/{id}"
+    campground_sites = "camps/campgrounds/{id}/campsites"
     campsite = "camps/campsites/{id}"
     permit = "permitcontent/{id}"
 
@@ -66,6 +67,13 @@ class RecreationGovClient(APIClient):
         headers = self.get_default_headers()
         resp = self.get(url, headers=headers)
         return resp["campground"]
+
+    @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)
+    def get_campground_sites(self, campground_id: IntOrStr) -> list[RGApiCampsite]:
+        url = RecreationGovEndpoint.campground_sites.format(id=campground_id)
+        headers = self.get_default_headers()
+        resp = self.get(url, headers=headers)
+        return resp["campsites"]
 
     @backoff.on_exception(backoff.expo, BACKOFF_EXCEPTIONS, max_tries=BACKOFF_TRIES)
     def get_campsite(self, campsite_id: IntOrStr) -> RGApiCampsite:

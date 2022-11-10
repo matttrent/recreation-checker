@@ -44,7 +44,8 @@ class CampsiteAvailabilityStatus(str, enum.Enum):
 
 
 class RGApiCampground(BaseModel):
-    campsite_ids: list[str] = Field(..., alias="campsites")
+    campsite_ids: Optional[list[str]] = Field(default=None, alias="campsites")
+    # campsite_ids: list[str] = Field(..., alias="campsites")
     email:  Optional[str] = Field(..., alias="facility_email")
     id: str = Field(..., alias="facility_id")
     latitude: float = Field(..., alias="facility_latitude")

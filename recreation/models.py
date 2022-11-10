@@ -97,11 +97,18 @@ class Campground:
         return f"https://www.recreation.gov/camping/campgrounds/{self.id}"
 
     def fetch_campsites(self) -> None:
-        with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
-            self.campsites = {
-                site.id: site
-                for site in executor.map(Campsite.fetch, self.campsite_ids)
-            }
+        # with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
+        #     self.campsites = {
+        #         site.id: site
+        #         for site in executor.map(Campsite.fetch, self.campsite_ids)
+        #     }
+        client = RecreationGovClient()
+        sites = client.get_campground_sites(self.id)
+        if self.campsite_ids is None:
+            self.campsite_ids = [site.id for site in sites]
+        self.campsites = {
+            site.id: Campsite(site) for site in sites
+        }
 
     def fetch_alerts(self) -> None:
         client = RecreationGovClient()

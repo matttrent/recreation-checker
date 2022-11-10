@@ -10,6 +10,8 @@ camping.py
     - avail
 """
 
+from concurrent.futures import ThreadPoolExecutor
+import dataclasses
 import datetime as dt
 
 from typing import Optional
@@ -146,6 +148,88 @@ def campground_avail(
             a.status.value,
         )
     console.print(availtab)
+
+
+@campground_app.command("check")
+def campground_check(
+    camp_ids: str,
+    start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
+    end_date: str = typer.Option(None, "--end-date", "-e", help="End date"),
+    site_ids: str = typer.Option(None, "--site-ids", "-i", help="Site IDs"),
+    length: int = typer.Option(None, "--length", "-l", help="Booking window length"),
+    status: str = typer.Option(None, help="Campsite status"),
+):
+
+    if not end_date:
+        end_date = start_date
+
+    sdate = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
+    edate = dt.datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    availtab = Table(title=f"Available campsites", box=box.SIMPLE_HEAD)
+    availtab.add_column("Campground name")
+    availtab.add_column("Campground ID")
+    availtab.add_column("Campsite name")
+    availtab.add_column("Campsite ID")
+    availtab.add_column("Start date")
+    availtab.add_column("Length")
+    availtab.add_column("Status")
+
+    camp_id_list = camp_ids.split(",")
+
+    @dataclasses.dataclass
+    class CampAndAvail:
+        camp: Campground
+        avail: CampgroundAvailabilityList
+
+    def fetch_camp_and_avail(camp_id):
+        camp = Campground.fetch(camp_id, fetch_all=False)        
+        camp.fetch_campsites()
+        avail = camp.fetch_availability(sdate, edate)
+
+        return CampAndAvail(camp, avail) 
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        camps_and_avails : dict[str, CampAndAvail] = {
+            caa.camp.id: caa
+            for caa in executor.map(fetch_camp_and_avail, camp_id_list)
+        }
+
+    for camp_id, camp_and_avail in camps_and_avails.items():
+
+        # camp = Campground.fetch(camp_id, fetch_all=True)
+        camp = camp_and_avail.camp
+        avail = camp_and_avail.avail
+
+        # console.print(alert_table(camp.alerts))
+
+        # avail = camp.fetch_availability(sdate, edate)
+        avail = avail.filter_dates(sdate, edate)
+
+        if site_ids:
+            sids = site_ids.split(",")
+            avail = avail.filter_id(sids)
+
+        if length:
+            avail = avail.filter_length(length)
+
+        if status:
+            status_enum = CampsiteAvailabilityStatus[status]
+            avail = avail.filter_status(status_enum)
+
+        for a in avail.availability:
+            availtab.add_row(
+                f"[link={camp.url}]{camp.name}[/link]",
+                camp.id,
+                camp.campsites[a.id].name,
+                a.id,
+                a.date.isoformat(),
+                str(a.length),
+                a.status.value,
+            )
+
+    console.print(availtab)
+
 
 
 @permit_app.command("info")

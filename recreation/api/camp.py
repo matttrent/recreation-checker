@@ -38,8 +38,11 @@ class CampsiteReserveType(str, enum.Enum):
 class CampsiteAvailabilityStatus(str, enum.Enum):
     available = "Available"
     not_available = "Not Available"
+    not_available_cutoff = "Not Available Cutoff"
     not_reservable = "Not Reservable"
     not_reservable_management = "Not Reservable Management"
+    nyr = "NYR"
+    open = "Open"
     reserved = "Reserved"
 
 

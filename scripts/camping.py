@@ -155,7 +155,7 @@ def campground_avail(
     console.print(availtab)
 
 
-@campground_app.command("check", help="check availability for one or more campgrounds")
+@campground_app.command("check", help="[DISABLED] check availability for one or more campgrounds")
 def campground_check(
     camp_ids: str,
     start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
@@ -164,6 +164,11 @@ def campground_check(
     length: int = typer.Option(None, "--length", "-l", help="Booking window length"),
     status: str = typer.Option(None, help="Campsite status"),
 ):
+    console.print(
+        "This command is disabled until I figure out how to avoid API rate limiting",
+        style="bold red"
+    )
+    return
 
     if not end_date:
         end_date = start_date

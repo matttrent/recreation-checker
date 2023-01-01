@@ -1,96 +1,216 @@
 # Campsite Availability Scraping
 
-This script scrapes the https://recreation.gov website for campsite availabilities.
+This script scrapes the https://recreation.gov website for info regarding campgrounds and permits, as well as checking their availabilities.
 
-It has 3 modes:
 
-- `check` to see if campsites are available for the entire range of `start_date` to `end_date`.
-- `search` for campsites with available blocks of at least `stay_length` anytime between `start_date` and `end_date`.
-- `nextopen` to see the first date campsites are available.  Useful for very hard-to-get ones like fire lookouts.
 
-where the results are broken donw by the type of campsite available (tent only, RV, etc...).
+## Campgrounds
 
-## Example Usage
+**Get campground info**
 
-Here is the output of `check` for campsites on 3 specific nights:
+Get information on Cottonwood Campground in Joshua Tree.
 
-```shell
-$ python camping.py search --start-date 2020-07-01 --end-date 2020-07-31 232448 232450 232447 232770
-❌ TUOLUMNE MEADOWS https://www.recreation.gov/camping/campgrounds/232448
-    GROUP TENT ONLY AREA NONELECTRIC: 0 / 7 available
-    MANAGEMENT: 0 / 4 available
-    TENT ONLY NONELECTRIC: 0 / 2 available
-    STANDARD NONELECTRIC: 0 / 8 available
-❌ LOWER PINES https://www.recreation.gov/camping/campgrounds/232450
-    STANDARD NONELECTRIC: 0 / 66 available
-    MANAGEMENT: 0 / 2 available
-    RV NONELECTRIC: 0 / 7 available
-❌ UPPER PINES https://www.recreation.gov/camping/campgrounds/232447
-    STANDARD NONELECTRIC: 0 / 205 available
-    RV NONELECTRIC: 0 / 28 available
-    TENT ONLY NONELECTRIC: 0 / 4 available
-    MANAGEMENT: 0 / 3 available
-🏕 BASIN MONTANA CAMPGROUND https://www.recreation.gov/camping/campgrounds/232770
-    STANDARD NONELECTRIC: 20 / 29 available
-    MANAGEMENT: 0 / 1 available
+```
+❯ ./scripts/camping.py campground info 272299
+COTTONWOOD CAMPGROUND (CA)
+                                    Alerts
+ ─────────────────────────────────────────────────────────────────────────────
+  ⚠️   <p>Odd-numbered campsites may not accommodate driver side slideouts</p>
+ ─────────────────────────────────────────────────────────────────────────────
+                             Campground fields
+
+  Field             Value
+ ─────────────────────────────────────────────────────────────────────────
+  URL               https://www.recreation.gov/camping/campgrounds/272299
+  email
+  id                272299
+  latitude          33.75
+  longitude         -115.825
+  map_url
+  name              COTTONWOOD CAMPGROUND (CA)
+  phone             760-367-5554
+  campground_type   CampgroundType.standard
+  parent_asset_id   2782
+  Sprint            0.3
+  AT&T              0.3
+  Verizon           0.2
+  T-Mobile          0.2
+
+                                       Campsites
+
+  Name   ID       Status                      Site type               Reservation type
+ ──────────────────────────────────────────────────────────────────────────────────────
+  B02    103758   Open                        STANDARD NONELECTRIC    Site-Specific
+  B27    103759   Open                        STANDARD NONELECTRIC    Site-Specific
+  B21    103760   Not Reservable Management   MANAGEMENT              Site-Specific
+  A30    103761   Open                        STANDARD NONELECTRIC    Site-Specific
+  B30    103762   Open                        STANDARD NONELECTRIC    Site-Specific
+  A05    103763   Open                        STANDARD NONELECTRIC    Site-Specific
+  B06    103764   Open                        STANDARD NONELECTRIC    Site-Specific
+  ...
 ```
 
-Here is the output of `search` for any 2-night periods:
 
-```shell
-± python camping.py search --start-date 2020-07-01 --end-date 2020-07-31 -l 3 232448 232450 232447 232770
-❌ TUOLUMNE MEADOWS https://www.recreation.gov/camping/campgrounds/232448
-❌ LOWER PINES https://www.recreation.gov/camping/campgrounds/232450
-❌ UPPER PINES https://www.recreation.gov/camping/campgrounds/232447
-🏕 BASIN MONTANA CAMPGROUND https://www.recreation.gov/camping/campgrounds/232770
-    STANDARD NONELECTRIC:
-        Starting 2020-07-05 (Sun) for 5 days
-        Starting 2020-07-12 (Sun) for 5 days
-        Starting 2020-07-19 (Sun) for 5 days
-        Starting 2020-07-26 (Sun) for 5 days
+
+**Get campground availability**
+
+Search for sites in Cottonwood Campground in January that are available for at least 7 consecutive.
+
+```
+❯ ./scripts/camping.py campground avail 272299 -s 2023-01-01 -e 2023-01-31 -l 7 --status available
+                                    Alerts
+ ─────────────────────────────────────────────────────────────────────────────
+  ⚠️   <p>Odd-numbered campsites may not accommodate driver side slideouts</p>
+ ─────────────────────────────────────────────────────────────────────────────
+                             Available campsites
+
+  Campsite name   Campsite ID   Start date   End date     Length   Status
+ ────────────────────────────────────────────────────────────────────────────
+  B02             103758        2023-01-22   2023-02-01   10       Available
+  A30             103761        2023-01-02   2023-01-13   11       Available
+  A30             103761        2023-01-22   2023-02-01   10       Available
+  B30             103762        2023-01-02   2023-01-13   11       Available
+  B30             103762        2023-01-22   2023-02-01   10       Available
+  B06             103764        2023-01-22   2023-02-01   10       Available
+  B01             103767        2023-01-22   2023-02-01   10       Available
+  B09             103773        2023-01-22   2023-02-01   10       Available
+  A21             103775        2023-01-22   2023-02-01   10       Available
+  A23             103776        2023-01-22   2023-01-29   7        Available
+  ...
 ```
 
-You can also read from stdin. Define a file (e.g. `parks.txt`) with IDs like this:
+Campground availability options
 
-```text
-232447
-232449
-232450
-232448
+```
+❯ ./scripts/camping.py campground avail --help
+
+ Usage: camping.py campground avail [OPTIONS] CAMP_ID
+
+ get detailed availability for a campground
+
+Arguments 
+*    camp_id      TEXT  [default: None] [required]
+
+Options
+--start-date  -s      TEXT     Start date [default: 2022-12-31]
+--end-date    -e      TEXT     End date [default: None]
+--site-ids    -i      TEXT     Site IDs [default: None]
+--length      -l      INTEGER  Booking window length [default: None]
+--status              TEXT     Campsite status [default: None]
 ```
 
-and then use it with this slightly funky syntax to be compatible with `click`:
 
-```shell
-$ cat parks.txt | tr "\n" " " | xargs python camping.py check --start-date 2018-07-20 --end-date 2018-07-23
-❌ TUOLUMNE MEADOWS https://www.recreation.gov/camping/campgrounds/232448
-    GROUP TENT ONLY AREA NONELECTRIC: 0 / 7 available
-    ...
+
+## Permits
+
+**Get permit info**
+
+Get info on Inyo National Forest permits.
+
+```
+❯ ./scripts/camping.py permit info inyo
+Inyo National Forest - Wilderness Permits
+
+                     Permit fields
+
+  Field      Value
+ ──────────────────────────────────────────────────────
+  URL        https://www.recreation.gov/permits/233262
+  id         233262
+  name       Inyo National Forest - Wilderness Permits
+  Verizon    0.7
+  T-Mobile   0.3
+  AT&T       0.7
+  Sprint     0.5
+
+                                      Divisions
+
+  Name                                       ID     Code      District
+ ────────────────────────────────────────────────────────────────────────────────────
+  Baker and Green Lakes                      460    JM22      John Muir
+  Baxter Pass                                464    JM29      John Muir
+  Beck Lake                                  437    AA12      Ansel Adams
+  Big Pine Creek North Fork                  495    JM23      John Muir
+  Big Pine Creek North Fork (Outfitter)      4952   JM23-O
+  Big Pine Creek North Fork (Pack Outfit)    4951   JM23-PO
+  Big Pine Creek South Fork                  461    JM24      John Muir
+  Birch Lake                                 462    JM25      John Muir
+  Bishop Pass -South Lake                    459    JM21      John Muir
+  Blackrock (Non Quota)                      473    GT66      Golden Trout
+  Bloody Canyon                              517    AA03      Ansel Adams
+  ...
 ```
 
-## Getting park IDs
 
-What you'll want to do is go to [recreation.gov](https://recreation.gov) and search for the campground you want. Click on it in the search sidebar. This should take you to a page for that campground, the URL will look like `https://www.recreation.gov/camping/campgrounds/<number>`. That number is the park ID.
 
-## Installation
+**Get permit availability**
 
-```shell
-conda create -n campsite-checker python=3.8 pip
-python3 -m venv myvenv
-source activate campsite-checker
-pip install -r requirements.txt
-# You're good to go!
+Search for permits in Inyo NF in June 2023 that have at least 5 remaining.
+
+```
+❯ ./scripts/camping.py permit avail inyo -r 5 -s 2023-06-01
+
+                                     Available permits
+
+  Division name                    Division ID   Date         Remain   Total    Is walkup
+ ─────────────────────────────────────────────────────────────────────────────────────────
+  Glacier Canyon                   424           2023-06-01   5        5        False
+  Parker Lake                      425           2023-06-01   6        6        False
+  Rush Creek                       430           2023-06-01   10       18       False
+  Yost / Fern Lakes                434           2023-06-01   5        5        False
+  Golden Trout Lakes               442           2023-06-01   6        6        False
+  Duck Pass                        444           2023-06-01   18       18       False
+  Valentine Lake                   445           2023-06-01   5        5        False
+  Laurel Lakes                     446           2023-06-01   5        5        False
+  Convict Creek                    447           2023-06-01   6        6        False
+  McGee Pass                       448           2023-06-01   9        9        False
+  ...
 ```
 
-## Development
+Campground availability options
 
-This code is formatted using black and isort:
+```
+❯ ./scripts/camping.py permit avail --help
 
-```shell
-black -t py38 camping.py
-isort camping.py
+ Usage: camping.py permit avail [OPTIONS] PERMIT_ID
+
+ get detailed availability for a permit
+
+Arguments*    permit_id      TEXT  [default: None] [required]                                                                   
+
+Options
+--start-date  -s                    TEXT     Start date [default: 2022-12-31]
+--end-date    -e                    TEXT     End date [default: None]
+--div-ids     -i                    TEXT     Division IDs [default: None]
+--div-codes   -c                    TEXT     Division codes [default: None]
+--remain      -r                    INTEGER  Remaining spots [default: None]
+--is-walkup       --no-is-walkup             Is walkup permit [default: no-is-walkup]
 ```
 
-## Limitations / Todo
 
-...
+
+**Extra**
+
+There are aliases for the common California permits, so you don’t have to look up the ID:
+
+```
+PERMIT_IDS = {
+    "desolation": "233261",
+    "humboldt": "445856",
+    "yosemite": "445859",
+    "inyo": "233262",
+    "sierra": "445858",
+    "seki": "445857",
+    "whitney": "233260",
+}
+```
+
+
+
+
+
+## Getting campground and permit IDs
+
+What you'll want to do is go to [recreation.gov](https://recreation.gov) and search for the campground (or permit) you want. Click on it in the search sidebar. This should 
+take you to a page for that campground, the URL will look like `https://www.recreation.gov/camping/campgrounds/<number>`. That number is the campground ID.  Similarly, the URL will look like `https://www.recreation.gov/permits/<number>` for permits.
+

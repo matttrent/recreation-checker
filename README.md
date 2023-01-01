@@ -50,8 +50,6 @@ COTTONWOOD CAMPGROUND (CA)
   ...
 ```
 
-
-
 **Get campground availability**
 
 Search for sites in Cottonwood Campground in January that are available for at least 7 consecutive.
@@ -99,8 +97,6 @@ Options
 --status              TEXT     Campsite status [default: None]
 ```
 
-
-
 ## Permits
 
 **Get permit info**
@@ -140,8 +136,6 @@ Inyo National Forest - Wilderness Permits
   Bloody Canyon                              517    AA03      Ansel Adams
   ...
 ```
-
-
 
 **Get permit availability**
 
@@ -187,8 +181,6 @@ Options
 --is-walkup       --no-is-walkup             Is walkup permit [default: no-is-walkup]
 ```
 
-
-
 **Extra**
 
 There are aliases for the common California permits, so you don’t have to look up the ID:
@@ -205,12 +197,15 @@ PERMIT_IDS = {
 }
 ```
 
-
-
-
-
 ## Getting campground and permit IDs
 
 What you'll want to do is go to [recreation.gov](https://recreation.gov) and search for the campground (or permit) you want. Click on it in the search sidebar. This should 
 take you to a page for that campground, the URL will look like `https://www.recreation.gov/camping/campgrounds/<number>`. That number is the campground ID.  Similarly, the URL will look like `https://www.recreation.gov/permits/<number>` for permits.
 
+## Status
+
+The API and core models are complete, reasonably well-polished, and have tests.  The `campinp.py` script is a hodge-podge of things that could be much better.
+
+## Todo
+
+`¯\_(ツ)_/¯`

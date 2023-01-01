@@ -8,6 +8,12 @@ This script scrapes the https://recreation.gov website for info regarding campgr
 
 **Get campground info**
 
+Info on campground, including
+
+- Overall campground info, including any recreation.gov alerts
+- Ratings on quality of cell service for major providers
+- Info on each of the individual campsites within the the campground, with link to recreation.gov page
+
 Get information on Cottonwood Campground in Joshua Tree.
 
 ```
@@ -51,6 +57,13 @@ COTTONWOOD CAMPGROUND (CA)
 ```
 
 **Get campground availability**
+
+Search campsite availability within the campground, including ability to:
+
+- Filter by date window
+- Filter by availability status (available, reserved, etc…)
+- Filter by length of window 
+- Filter by campsite IDs
 
 Search for sites in Cottonwood Campground in January that are available for at least 7 consecutive.
 
@@ -101,6 +114,12 @@ Options
 
 **Get permit info**
 
+Info on permit, including
+
+- Overall permit info, including any recreation.gov alerts
+- Ratings on quality of cell service for major providers
+- Info on each of the individual permit divisions (aka trailheads) within the area
+
 Get info on Inyo National Forest permits.
 
 ```
@@ -138,6 +157,12 @@ Inyo National Forest - Wilderness Permits
 ```
 
 **Get permit availability**
+
+Search permit availability by division/trailhead, with ability to:
+
+- Filter by date window
+- Filter by number of spots remaining
+- Filter by division ID and code
 
 Search for permits in Inyo NF in June 2023 that have at least 5 remaining.
 
@@ -208,4 +233,5 @@ The API and core models are complete, reasonably well-polished, and have tests. 
 
 ## Todo
 
-`¯\_(ツ)_/¯`
+- Filter campground availability by site type
+- `¯\_(ツ)_/¯`

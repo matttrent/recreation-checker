@@ -5,6 +5,7 @@ camping.py
   - campground
     - info
     - avail
+    - check
   - permit
     - info
     - avail
@@ -46,16 +47,20 @@ def alert_table(alerts: list[RGApiAlert]) -> Optional[Table]:
     return alerttab
 
 
-app = typer.Typer()
+app = typer.Typer(help="recreation.gov camping and permit checker")
 
-campground_app = typer.Typer()
+campground_app = typer.Typer(
+    help="commands for checking campgrounds", add_completion=False
+)
 app.add_typer(campground_app, name="campground")
 
-permit_app = typer.Typer()
+permit_app = typer.Typer(
+    help="commands for checking permits", add_completion=False
+)
 app.add_typer(permit_app, name="permit")
 
 
-@campground_app.command("info")
+@campground_app.command("info", help="get info about a campground")
 def campground_info(camp_id: str):
     camp = Campground.fetch(camp_id, fetch_all=True)
 
@@ -96,7 +101,7 @@ def campground_info(camp_id: str):
     console.print(sitetab)
 
 
-@campground_app.command("avail")
+@campground_app.command("avail", help="get detailed availability for a campground")
 def campground_avail(
     camp_id: str,
     start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
@@ -150,7 +155,7 @@ def campground_avail(
     console.print(availtab)
 
 
-@campground_app.command("check")
+@campground_app.command("check", help="check availability for one or more campgrounds")
 def campground_check(
     camp_ids: str,
     start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
@@ -232,7 +237,7 @@ def campground_check(
 
 
 
-@permit_app.command("info")
+@permit_app.command("info", help="get info about a permit")
 def permit_info(permit_id: str):
 
     permit = Permit.fetch(permit_id, fetch_all=True)
@@ -297,7 +302,7 @@ def permit_info(permit_id: str):
     # console.print(enttab)
     
 
-@permit_app.command("avail")
+@permit_app.command("avail", help="get detailed availability for a permit")
 def permit_avail(
     permit_id: str,
     start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),

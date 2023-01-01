@@ -1,6 +1,6 @@
-# Campsite Availability Scraping
+# Recreation.gov checker
 
-This script scrapes the https://recreation.gov website for info regarding campgrounds and permits, as well as checking their availabilities.
+This python module and script uses the https://recreation.gov website API for info regarding campgrounds and permits, as well as checking their availabilities.
 
 
 
@@ -109,6 +109,8 @@ Options
 --length      -l      INTEGER  Booking window length [default: None]
 --status              TEXT     Campsite status [default: None]
 ```
+
+
 
 ## Permits
 
@@ -222,14 +224,20 @@ PERMIT_IDS = {
 }
 ```
 
+
+
 ## Getting campground and permit IDs
 
 What you'll want to do is go to [recreation.gov](https://recreation.gov) and search for the campground (or permit) you want. Click on it in the search sidebar. This should 
 take you to a page for that campground, the URL will look like `https://www.recreation.gov/camping/campgrounds/<number>`. That number is the campground ID.  Similarly, the URL will look like `https://www.recreation.gov/permits/<number>` for permits.
 
+
+
 ## Status
 
 The API and core models are complete, reasonably well-polished, and have tests.  The `campinp.py` script is a hodge-podge of things that could be much better.
+
+
 
 ## Todo
 

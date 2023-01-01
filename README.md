@@ -195,7 +195,7 @@ Campground availability options
 
  get detailed availability for a permit
 
-Arguments*    permit_id      TEXT  [default: None] [required]                                                                   
+Arguments*    permit_id      TEXT  [default: None] [required]
 
 Options
 --start-date  -s                    TEXT     Start date [default: 2022-12-31]

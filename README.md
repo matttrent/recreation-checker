@@ -6,13 +6,15 @@ This python module and script uses the https://recreation.gov website API for in
 
 ## Campgrounds
 
-**Get campground info**
+### Get campground info
 
-Info on campground, including
+Info on campground, including:
 
 - Overall campground info, including any recreation.gov alerts
 - Ratings on quality of cell service for major providers
 - Info on each of the individual campsites within the the campground, with link to recreation.gov page
+
+
 
 Get information on Cottonwood Campground in Joshua Tree.
 
@@ -56,14 +58,18 @@ COTTONWOOD CAMPGROUND (CA)
   ...
 ```
 
-**Get campground availability**
+
+
+### Get campground availability
 
 Search campsite availability within the campground, including ability to:
 
 - Filter by date window
 - Filter by availability status (available, reserved, etc…)
 - Filter by length of window 
-- Filter by campsite IDs
+- Filter by specific campsite IDs
+
+
 
 Search for sites in Cottonwood Campground in January that are available for at least 7 consecutive.
 
@@ -90,6 +96,8 @@ Search for sites in Cottonwood Campground in January that are available for at l
   ...
 ```
 
+
+
 Campground availability options
 
 ```
@@ -114,13 +122,15 @@ Options
 
 ## Permits
 
-**Get permit info**
+### Get permit info
 
-Info on permit, including
+Info on permit, including:
 
 - Overall permit info, including any recreation.gov alerts
 - Ratings on quality of cell service for major providers
 - Info on each of the individual permit divisions (aka trailheads) within the area
+
+
 
 Get info on Inyo National Forest permits.
 
@@ -158,13 +168,17 @@ Inyo National Forest - Wilderness Permits
   ...
 ```
 
-**Get permit availability**
+
+
+### Get permit availability
 
 Search permit availability by division/trailhead, with ability to:
 
 - Filter by date window
 - Filter by number of spots remaining
 - Filter by division ID and code
+
+
 
 Search for permits in Inyo NF in June 2023 that have at least 5 remaining.
 
@@ -188,6 +202,8 @@ Search for permits in Inyo NF in June 2023 that have at least 5 remaining.
   ...
 ```
 
+
+
 Campground availability options
 
 ```
@@ -207,6 +223,8 @@ Options
 --remain      -r                    INTEGER  Remaining spots [default: None]
 --is-walkup       --no-is-walkup             Is walkup permit [default: no-is-walkup]
 ```
+
+
 
 **Extra**
 

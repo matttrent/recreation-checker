@@ -96,13 +96,14 @@ def test_campground_fetch(campground_model, campground_data):
 
 @responses.activate
 def test_campground_fetch_campsites(campground_model, campsite_data):
-    camp_id = "64082"
+    camp_id = "234436"
+    site_id = "64082"
     resp = {
-        "campsite": campsite_data
+        "campsites": [campsite_data],
     }
     responses.add(
         responses.GET,
-        f"https://www.recreation.gov/api/camps/campsites/64082",
+        f"https://www.recreation.gov/api/camps/campgrounds/{camp_id}/campsites",
         json=resp,
         status=200,
     )
@@ -110,6 +111,6 @@ def test_campground_fetch_campsites(campground_model, campsite_data):
     camp = campground_model
     camp.fetch_campsites()
     assert len(camp.campsites) == 1
-    assert camp_id in camp.campsites
-    assert camp.campsites[camp_id].id == camp_id
-    assert camp.campsites[camp_id].name == campsite_data["campsite_name"]
+    assert site_id in camp.campsites
+    assert camp.campsites[site_id].id == site_id
+    assert camp.campsites[site_id].name == campsite_data["campsite_name"]

@@ -12,15 +12,15 @@ from.availability_list import (
     CampgroundAvailabilityList, 
     PermitAvailabilityList,
 )
-from .api.camp import (
+from .rgapi.camp import (
     RGApiCampground,
     RGApiCampsite,
 )
-from .api.client import (
+from .rgapi.client import (
     RecreationGovClient
 )
-from .api.extra import LocationType, RGApiAlert, RGApiRatingAggregate
-from .api.permit import (
+from .rgapi.extra import LocationType, RGApiAlert, RGApiRatingAggregate
+from .rgapi.permit import (
     RgApiPermitDivision,
     RgApiPermitEntrance,
     RGApiPermit,

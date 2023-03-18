@@ -2,7 +2,7 @@ import datetime as dt
 import pytest
 from typing import Any
 
-from recreation.api.permit import (
+from recreation.rgapi.permit import (
     RGApiPermit,
     RGApiPermitAvailability,
     RGApiPermitInyoAvailability,

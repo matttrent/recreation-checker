@@ -4,11 +4,11 @@ import pytest
 
 import responses
 
-from recreation.api.client import (
+from recreation.rgapi.client import (
     RecreationGovEndpoint,
     RecreationGovClient,
 )
-from recreation.api.extra import RGApiAlert, RGApiRatingAggregate
+from recreation.rgapi.extra import RGApiAlert, RGApiRatingAggregate
 
 from test_camp import (
     campsite_data, campsite, campground_data, campground, 

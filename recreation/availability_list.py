@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from typing import Optional, Union
 from operator import attrgetter
 
-from .api.camp import (
+from .rgapi.camp import (
     RGApiCampgroundAvailability,
     CampsiteAvailabilityStatus,
 )
-from .api.permit import (
+from .rgapi.permit import (
     RgApiPermitDivision,
     RGApiPermitAvailability,
     RGApiPermitInyoAvailability,

@@ -106,6 +106,7 @@ def campground_avail(
     camp_id: str,
     start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
     end_date: str = typer.Option(None, "--end-date", "-e", help="End date"),
+    days_of_week: str = typer.Option(None, "--days-of-week", "-w", help="Days of week"),
     site_ids: str = typer.Option(None, "--site-ids", "-i", help="Site IDs"),
     length: int = typer.Option(None, "--length", "-l", help="Booking window length"),
     status: str = typer.Option(None, help="Campsite status"),
@@ -123,6 +124,10 @@ def campground_avail(
 
     avail = camp.fetch_availability(sdate, edate)
     avail = avail.filter_dates(sdate, edate)
+
+    if days_of_week:
+        dow = [int(d) for d in days_of_week.split(",")]
+        avail = avail.filter_days_of_week(dow)
 
     if site_ids:
         sids = site_ids.split(",")
@@ -312,6 +317,7 @@ def permit_avail(
     permit_id: str,
     start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
     end_date: str = typer.Option(None, "--end-date", "-e", help="End date"),
+    days_of_week: str = typer.Option(None, "--days-of-week", "-w", help="Days of week"),
     division_ids: str = typer.Option(None, "--div-ids", "-i", help="Division IDs"),
     division_codes: str = typer.Option(None, "--div-codes", "-c", help="Division codes"),
     remain: int = typer.Option(None, "--remain", "-r", help="Remaining spots"),
@@ -330,6 +336,10 @@ def permit_avail(
 
     avail = permit.fetch_availability(sdate, edate)
     avail = avail.filter_dates(sdate, edate)
+
+    if days_of_week:
+        dow = [int(d) for d in days_of_week.split(",")]
+        avail = avail.filter_days_of_week(dow)
 
     if division_ids:
         dids = division_ids.split(",")

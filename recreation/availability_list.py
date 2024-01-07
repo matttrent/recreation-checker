@@ -71,6 +71,15 @@ class AvailabilityList:
             availability = [avail for avail in availability if avail.date <= end_date]
         return self.__class__(availability)
 
+    def filter_days_of_week(
+        self,
+        days_of_week: Optional[list[int]] = None
+    ) -> "AvailabilityList":
+        if days_of_week is None or len(days_of_week) == 0):
+            return self
+        availability = [avail for avail in self.availability if avail.date.weekday() in days_of_week]
+        return self.__class__(availability)
+
 
 class CampgroundAvailabilityList(AvailabilityList):
 

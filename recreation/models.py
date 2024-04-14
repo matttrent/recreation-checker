@@ -1,7 +1,6 @@
 import datetime as dt
 
 from concurrent.futures import ThreadPoolExecutor
-from http import client
 from typing import Iterable, Optional, Any
 from dateutil import rrule
 
@@ -104,8 +103,8 @@ class Campground:
         #     }
         client = RecreationGovClient()
         sites = client.get_campground_sites(self.id)
-        if self.campsite_ids is None:
-            self.campsite_ids = [site.id for site in sites]
+        # if self.campsite_ids is None:
+        #     self.campsite_ids = [site.id for site in sites]
         self.campsites = {
             site.id: Campsite(site) for site in sites
         }
@@ -184,6 +183,10 @@ class Permit:
             perm.fetch_ratings()
 
         return perm
+
+    @staticmethod
+    def known_permits():
+        return sorted(PERMIT_IDS.keys())
 
     def __getattr__(self, attr: str) -> Any:
         if attr not in self.api_permit.__fields__:

@@ -1,22 +1,27 @@
 import datetime as dt
-
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Optional, Union, Sequence, Generic, TypeVar, cast
 from operator import attrgetter
+from typing import Generic, Iterable, Optional, Sequence, TypeVar, Union, cast
 
-from .rgapi.camp import (
-    RGApiCampgroundAvailability,
-    CampsiteAvailabilityStatus,
-)
+from apiclient.exceptions import ClientError
+from dateutil import rrule
+
+from .core import IntOrStr
+from .rgapi.camp import CampsiteAvailabilityStatus, RGApiCampgroundAvailability
+from .rgapi.client import RecreationGovClient
 from .rgapi.permit import (
-    RgApiPermitDivision,
     RGApiPermitAvailability,
+    RgApiPermitDivision,
     RGApiPermitInyoAvailability,
 )
-from .core import IntOrStr
+
+POOL_NUM_WORKERS = 16
+
 
 # Define a type variable bound to BaseAvailability
 T = TypeVar('T', bound='BaseAvailability')
+
 
 @dataclass
 class BaseAvailability:
@@ -54,8 +59,8 @@ class AvailabilityList(Generic[T]):
         self.ids = sorted(list(set(avail.id for avail in self.availability)))
         self.dates = sorted(list(set(avail.date for avail in self.availability)))
 
-    def filter_id(self, ids: Union[IntOrStr, list[IntOrStr]]) -> "AvailabilityList[T]":
-        if not isinstance(ids, list):
+    def filter_id(self, ids: Union[IntOrStr, Sequence[IntOrStr]]) -> "AvailabilityList[T]":
+        if not isinstance(ids, Sequence):
             ids = [ids]
         id_strs = [str(i) for i in ids]
         availability = [avail for avail in self.availability if avail.id in id_strs]
@@ -164,6 +169,43 @@ class CampgroundAvailabilityList(AvailabilityList[CampgroundAvailability]):
             )
 
         return CampgroundAvailabilityList(availability)
+    
+    @staticmethod
+    def fetch_availability(
+        campground_id: str,
+        start_date: dt.date, end_date: Optional[dt.date] = None,
+        aggregate: bool = True
+    ) -> "CampgroundAvailabilityList":
+
+        start_date = max(start_date, dt.date.today())
+        if not end_date:
+            end_date = start_date
+
+        start_month = start_date.replace(day=1)
+        end_month = end_date.replace(day=1)
+        n_months = (
+            (end_month.year - start_month.year) * 12
+            + (end_month.month - start_month.month)
+            + 1
+        )
+        months: Iterable[dt.date] = [
+            m.date()
+            for m in rrule.rrule(
+                freq=rrule.MONTHLY, dtstart=start_month, count=n_months
+            )
+        ]
+
+        client = RecreationGovClient()
+        def get_campground_partial(month: dt.date):
+            return client.get_campground_availability(campground_id, month)
+        with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
+            availability_months = list(executor.map(
+                get_campground_partial, months
+            ))
+
+        return CampgroundAvailabilityList.from_campground(
+            availability_months, aggregate
+        )
 
     def filter_status(
         self, status: CampsiteAvailabilityStatus
@@ -247,12 +289,52 @@ class PermitAvailabilityList(AvailabilityList[PermitAvailability]):
 
         availability.sort(key=attrgetter("id", "date"))
         return PermitAvailabilityList(availability)
-    
+
+    @staticmethod
+    def fetch_availability(
+        permit_id: str, start_date: dt.date, end_date: Optional[dt.date] = None
+    ) -> "PermitAvailabilityList":
+
+        start_date = max(start_date, dt.date.today())
+        if not end_date:
+            end_date = start_date
+
+        start_month = start_date.replace(day=1)
+        end_month = end_date.replace(day=1)
+        n_months = (
+            (end_month.year - start_month.year) * 12
+            + (end_month.month - start_month.month)
+            + 1
+        )
+        months: Iterable[dt.date] = [
+            m.date()
+            for m in rrule.rrule(
+                freq=rrule.MONTHLY, dtstart=start_month, count=n_months
+            )
+        ]
+
+        client = RecreationGovClient()
+
+        def fetch_permit_partial(month: dt.date):
+            return client.get_permit_availability(permit_id, month)
+
+        def fetch_permit_inyo_partial(month: dt.date):
+            return client.get_permit_inyo_availability(permit_id, month)
+
+        try:
+            with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
+                availability_months = list(executor.map(fetch_permit_partial, months))
+            return PermitAvailabilityList.from_permit(availability_months)
+        except ClientError:
+            with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
+                availability_months = list(executor.map(fetch_permit_inyo_partial, months))
+            return PermitAvailabilityList.from_permit_inyo(availability_months)
+
     def filter_division(
         self, 
-        division: Union[RgApiPermitDivision, list[RgApiPermitDivision]]
+        division: Union[RgApiPermitDivision, Sequence[RgApiPermitDivision]]
     ) -> "PermitAvailabilityList":
-        if not isinstance(division, list):
+        if not isinstance(division, Sequence):
             division = [division]
         ids = [div.id for div in division]
         filtered_list = self.filter_id(ids)

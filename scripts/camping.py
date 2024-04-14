@@ -21,13 +21,12 @@ import typer
 
 from rich import box
 from rich.console import Console
-from rich.padding import Padding
 from rich.table import Table
 from rich.text import Text
 
 from recreation.rgapi.camp import CampsiteAvailabilityStatus
 from recreation.availability_list import CampgroundAvailabilityList
-from recreation.models import Campground, Permit, RGApiAlert, POOL_NUM_WORKERS
+from recreation.models import Campground, Permit, RGApiAlert
 
 
 console = Console()

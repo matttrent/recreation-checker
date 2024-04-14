@@ -1,30 +1,22 @@
 import datetime as dt
+from typing import Any, Optional
 
-from concurrent.futures import ThreadPoolExecutor
-from typing import Iterable, Optional, Any
-from dateutil import rrule
-
-from apiclient.exceptions import ClientError
-
-from .core import IntOrStr
-from.availability_list import (
-    CampgroundAvailabilityList, 
+from .availability_list import (
+    CampgroundAvailabilityList,
     PermitAvailabilityList,
 )
+from .core import IntOrStr
 from .rgapi.camp import (
     RGApiCampground,
     RGApiCampsite,
 )
-from .rgapi.client import (
-    RecreationGovClient
-)
+from .rgapi.client import RecreationGovClient
 from .rgapi.extra import LocationType, RGApiAlert, RGApiRatingAggregate
 from .rgapi.permit import (
+    RGApiPermit,
     RgApiPermitDivision,
     RgApiPermitEntrance,
-    RGApiPermit,
 )
-
 
 POOL_NUM_WORKERS = 16
 
@@ -121,35 +113,12 @@ class Campground:
         self, start_date: dt.date, end_date: Optional[dt.date] = None,
         aggregate: bool = True
     ) -> CampgroundAvailabilityList:
-
-        start_date = max(start_date, dt.date.today())
-        if not end_date:
-            end_date = start_date
-
-        start_month = start_date.replace(day=1)
-        end_month = end_date.replace(day=1)
-        n_months = (
-            (end_month.year - start_month.year) * 12
-            + (end_month.month - start_month.month)
-            + 1
-        )
-        months: Iterable[dt.date] = [
-            m.date()
-            for m in rrule.rrule(
-                freq=rrule.MONTHLY, dtstart=start_month, count=n_months
-            )
-        ]
-
-        client = RecreationGovClient()
-        def get_campground_partial(month: dt.date):
-            return client.get_campground_availability(self.id, month)
-        with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
-            availability_months = list(executor.map(
-                get_campground_partial, months
-            ))
-
-        return CampgroundAvailabilityList.from_campground(
-            availability_months, aggregate
+        # Call the static method from CampgroundAvailabilityList
+        return CampgroundAvailabilityList.fetch_availability(
+            campground_id=self.id,
+            start_date=start_date,
+            end_date=end_date,
+            aggregate=aggregate
         )
 
 
@@ -222,39 +191,9 @@ class Permit:
     def fetch_availability(
         self, start_date: dt.date, end_date: Optional[dt.date] = None
     ) -> PermitAvailabilityList:
-
-        start_date = max(start_date, dt.date.today())
-        if not end_date:
-            end_date = start_date
-
-        start_month = start_date.replace(day=1)
-        end_month = end_date.replace(day=1)
-        n_months = (
-            (end_month.year - start_month.year) * 12
-            + (end_month.month - start_month.month)
-            + 1
+        # Adjust to call the static method from PermitAvailabilityList
+        return PermitAvailabilityList.fetch_availability(
+            permit_id=self.id,
+            start_date=start_date,
+            end_date=end_date
         )
-        months: Iterable[dt.date] = [
-            m.date()
-            for m in rrule.rrule(
-                freq=rrule.MONTHLY, dtstart=start_month, count=n_months
-            )
-        ]
-
-        client = RecreationGovClient()
-        try:
-            client.get_permit_availability(self.id, start_month)
-            get_permit = client.get_permit_availability
-            from_permit = PermitAvailabilityList.from_permit 
-        except ClientError:
-            client.get_permit_inyo_availability(self.id, start_month)
-            get_permit = client.get_permit_inyo_availability
-            from_permit = PermitAvailabilityList.from_permit_inyo
-
-        def get_permit_partial(month: dt.date):
-            return get_permit(self.id, month)
-
-        with ThreadPoolExecutor(max_workers=POOL_NUM_WORKERS) as executor:
-            availability_months = list(executor.map(get_permit_partial, months))
-
-        return from_permit(availability_months)

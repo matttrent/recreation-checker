@@ -1,7 +1,7 @@
 import datetime as dt
 
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional, Union, Sequence, Generic, TypeVar, cast
 from operator import attrgetter
 
 from .rgapi.camp import (
@@ -15,6 +15,8 @@ from .rgapi.permit import (
 )
 from .core import IntOrStr
 
+# Define a type variable bound to BaseAvailability
+T = TypeVar('T', bound='BaseAvailability')
 
 @dataclass
 class BaseAvailability:
@@ -41,19 +43,19 @@ class PermitAvailability(BaseAvailability):
     is_walkup: bool
 
 
-class AvailabilityList:
+class AvailabilityList(Generic[T]):
 
-    availability: list[BaseAvailability]
+    availability: Sequence[T]  # Use the type variable here
     ids: list[IntOrStr]
     dates: list[dt.date]
 
-    def __init__(self, availability: list[BaseAvailability]) -> None:
+    def __init__(self, availability: Sequence[T]) -> None:
         self.availability = availability
         self.ids = sorted(list(set(avail.id for avail in self.availability)))
         self.dates = sorted(list(set(avail.date for avail in self.availability)))
 
-    def filter_id(self, ids: Union[IntOrStr, list[IntOrStr]]) -> "AvailabilityList":
-        if type(ids) != list:
+    def filter_id(self, ids: Union[IntOrStr, list[IntOrStr]]) -> "AvailabilityList[T]":
+        if not isinstance(ids, list):
             ids = [ids]
         id_strs = [str(i) for i in ids]
         availability = [avail for avail in self.availability if avail.id in id_strs]
@@ -63,7 +65,7 @@ class AvailabilityList:
         self,         
         start_date: Optional[dt.date] = None,
         end_date: Optional[dt.date] = None,
-    ) -> "AvailabilityList":
+    ) -> "AvailabilityList[T]":
         availability = self.availability
         if start_date:
             availability = [avail for avail in availability if avail.end_date >= start_date]
@@ -74,14 +76,14 @@ class AvailabilityList:
     def filter_days_of_week(
         self,
         days_of_week: Optional[list[int]] = None
-    ) -> "AvailabilityList":
-        if days_of_week is None or len(days_of_week) == 0):
+    ) -> "AvailabilityList[T]":
+        if (days_of_week is None) or (len(days_of_week) == 0):
             return self
         availability = [avail for avail in self.availability if avail.date.weekday() in days_of_week]
         return self.__class__(availability)
 
 
-class CampgroundAvailabilityList(AvailabilityList):
+class CampgroundAvailabilityList(AvailabilityList[CampgroundAvailability]):
 
     @staticmethod
     def _from_campground_month(
@@ -174,7 +176,7 @@ class CampgroundAvailabilityList(AvailabilityList):
         return self.__class__(availability)
 
 
-class PermitAvailabilityList(AvailabilityList):
+class PermitAvailabilityList(AvailabilityList[PermitAvailability]):
 
     @staticmethod
     def _from_permit_month(
@@ -250,10 +252,12 @@ class PermitAvailabilityList(AvailabilityList):
         self, 
         division: Union[RgApiPermitDivision, list[RgApiPermitDivision]]
     ) -> "PermitAvailabilityList":
-        if type(division) != list:
+        if not isinstance(division, list):
             division = [division]
         ids = [div.id for div in division]
-        return self.filter_id(ids)
+        filtered_list = self.filter_id(ids)
+        # Explicitly cast the result to PermitAvailabilityList
+        return cast(PermitAvailabilityList, filtered_list)
 
     def filter_remain(self, remaining: int) -> "PermitAvailabilityList":
         availability = [avail for avail in self.availability if avail.remaining >= remaining]

@@ -154,20 +154,24 @@ def campground_avail(
     console.print(availtab)
 
 
-@campground_app.command("check", help="[DISABLED] check availability for one or more campgrounds")
+@campground_app.command(
+    "check", help="[DISABLED] check availability for one or more campgrounds"
+)
 def campground_check(
     camp_ids: str,
-    start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
+    start_date: str = typer.Option(
+        dt.date.today().isoformat(), "--start-date", "-s", help="Start date"
+    ),
     end_date: str = typer.Option(None, "--end-date", "-e", help="End date"),
     site_ids: str = typer.Option(None, "--site-ids", "-i", help="Site IDs"),
     length: int = typer.Option(None, "--length", "-l", help="Booking window length"),
     status: str = typer.Option(None, help="Campsite status"),
 ):
-    console.print(
-        "This command is disabled until I figure out how to avoid API rate limiting",
-        style="bold red"
-    )
-    return
+    # console.print(
+    #     "This command is disabled until I figure out how to avoid API rate limiting",
+    #     style="bold red",
+    # )
+    # return
 
     if not end_date:
         end_date = start_date
@@ -175,7 +179,7 @@ def campground_check(
     sdate = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
     edate = dt.datetime.strptime(end_date, "%Y-%m-%d").date()
 
-    availtab = Table(title=f"Available campsites", box=box.SIMPLE_HEAD)
+    availtab = Table(title="Available campsites", box=box.SIMPLE_HEAD)
     availtab.add_column("Campground name")
     availtab.add_column("Campground ID")
     availtab.add_column("Campsite name")
@@ -184,7 +188,9 @@ def campground_check(
     availtab.add_column("Length")
     availtab.add_column("Status")
 
-    camp_id_list = camp_ids.split(",")
+    camp_id_list = [
+        camp_id.strip() for camp_id in camp_ids.split(",") if camp_id.strip()
+    ]
 
     @dataclasses.dataclass
     class CampAndAvail:
@@ -192,20 +198,26 @@ def campground_check(
         avail: CampgroundAvailabilityList
 
     def fetch_camp_and_avail(camp_id):
-        camp = Campground.fetch(camp_id, fetch_all=False)        
+        camp = Campground.fetch(camp_id, fetch_all=False)
         camp.fetch_campsites()
         avail = camp.fetch_availability(sdate, edate)
 
-        return CampAndAvail(camp, avail) 
+        return CampAndAvail(camp, avail)
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        camps_and_avails : dict[str, CampAndAvail] = {
-            caa.camp.id: caa
-            for caa in executor.map(fetch_camp_and_avail, camp_id_list)
+    workers = 0
+
+    if workers <= 1:
+        camps_and_avails: dict[str, CampAndAvail] = {
+            camp_id: fetch_camp_and_avail(camp_id) for camp_id in camp_id_list
         }
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            camps_and_avails: dict[str, CampAndAvail] = {
+                caa.camp.id: caa
+                for caa in executor.map(fetch_camp_and_avail, camp_id_list)
+            }
 
     for camp_id, camp_and_avail in camps_and_avails.items():
-
         # camp = Campground.fetch(camp_id, fetch_all=True)
         camp = camp_and_avail.camp
         avail = camp_and_avail.avail
@@ -213,7 +225,7 @@ def campground_check(
         # console.print(alert_table(camp.alerts))
 
         # avail = camp.fetch_availability(sdate, edate)
-        avail = avail.filter_dates(sdate, edate)
+        avail = avail.filter_dates(sdate, edate, exclude_start_day=True)
 
         if site_ids:
             sids = site_ids.split(",")

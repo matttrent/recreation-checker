@@ -11,29 +11,25 @@ camping.py
     - avail
 """
 
-from concurrent.futures import ThreadPoolExecutor
 import dataclasses
 import datetime as dt
-
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 import typer
-
 from rich import box
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from recreation.rgapi.camp import CampsiteAvailabilityStatus
 from recreation.availability_list import CampgroundAvailabilityList
 from recreation.models import Campground, Permit, RGApiAlert
-
+from recreation.rgapi.camp import CampsiteAvailabilityStatus
 
 console = Console()
 
 
 def alert_table(alerts: list[RGApiAlert]) -> Optional[Table]:
-
     alerttab = Table(
         title="Alerts", box=box.HORIZONTALS, style="red", show_header=False
     )
@@ -42,7 +38,7 @@ def alert_table(alerts: list[RGApiAlert]) -> Optional[Table]:
         for alert in alerts:
             alerttab.add_row("⚠️", alert.body.strip(), style="red", end_section=True)
         return alerttab
-    
+
     return alerttab
 
 
@@ -53,9 +49,7 @@ campground_app = typer.Typer(
 )
 app.add_typer(campground_app, name="campground")
 
-permit_app = typer.Typer(
-    help="commands for checking permits", add_completion=False
-)
+permit_app = typer.Typer(help="commands for checking permits", add_completion=False)
 app.add_typer(permit_app, name="permit")
 
 
@@ -103,14 +97,15 @@ def campground_info(camp_id: str):
 @campground_app.command("avail", help="get detailed availability for a campground")
 def campground_avail(
     camp_id: str,
-    start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
+    start_date: str = typer.Option(
+        dt.date.today().isoformat(), "--start-date", "-s", help="Start date"
+    ),
     end_date: str = typer.Option(None, "--end-date", "-e", help="End date"),
     days_of_week: str = typer.Option(None, "--days-of-week", "-w", help="Days of week"),
     site_ids: str = typer.Option(None, "--site-ids", "-i", help="Site IDs"),
     length: int = typer.Option(None, "--length", "-l", help="Booking window length"),
     status: str = typer.Option(None, help="Campsite status"),
 ):
-
     if not end_date:
         end_date = start_date
 
@@ -122,7 +117,7 @@ def campground_avail(
     console.print(alert_table(camp.alerts))
 
     avail = camp.fetch_availability(sdate, edate)
-    avail = avail.filter_dates(sdate, edate)
+    avail = avail.filter_dates(sdate, edate, exclude_start_day=True)
 
     if days_of_week:
         dow = [int(d) for d in days_of_week.split(",")]
@@ -245,10 +240,8 @@ def campground_check(
     console.print(availtab)
 
 
-
 @permit_app.command("info", help="get info about a permit")
 def permit_info(permit_id: str):
-
     permit = Permit.fetch(permit_id, fetch_all=True)
 
     name = Text(permit.name, style="bold blue")
@@ -309,20 +302,23 @@ def permit_info(permit_id: str):
     #         # str(entry.has_parking),
     #     )
     # console.print(enttab)
-    
+
 
 @permit_app.command("avail", help="get detailed availability for a permit")
 def permit_avail(
     permit_id: str,
-    start_date: str = typer.Option(dt.date.today().isoformat(), "--start-date", "-s", help="Start date"),
+    start_date: str = typer.Option(
+        dt.date.today().isoformat(), "--start-date", "-s", help="Start date"
+    ),
     end_date: str = typer.Option(None, "--end-date", "-e", help="End date"),
     days_of_week: str = typer.Option(None, "--days-of-week", "-w", help="Days of week"),
     division_ids: str = typer.Option(None, "--div-ids", "-i", help="Division IDs"),
-    division_codes: str = typer.Option(None, "--div-codes", "-c", help="Division codes"),
+    division_codes: str = typer.Option(
+        None, "--div-codes", "-c", help="Division codes"
+    ),
     remain: int = typer.Option(None, "--remain", "-r", help="Remaining spots"),
-    is_walkup: bool = typer.Option(None, help="Is walkup permit")
+    is_walkup: bool = typer.Option(None, help="Is walkup permit"),
 ):
-
     if not end_date:
         end_date = start_date
 
@@ -347,9 +343,7 @@ def permit_avail(
     if division_codes:
         dcodes = division_codes.split(",")
         divisions = [
-            div
-            for div_id, div in permit.divisions.items()
-            if div.code in dcodes
+            div for div_id, div in permit.divisions.items() if div.code in dcodes
         ]
         avail = avail.filter_division(divisions)
 

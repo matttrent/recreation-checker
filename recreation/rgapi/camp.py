@@ -49,11 +49,11 @@ class CampsiteAvailabilityStatus(str, enum.Enum):
 class RGApiCampground(BaseModel):
     campsite_ids: Optional[list[str]] = Field(default=None, alias="campsites")
     # campsite_ids: list[str] = Field(..., alias="campsites")
-    email:  Optional[str] = Field(..., alias="facility_email")
+    email: Optional[str] = Field(..., alias="facility_email")
     id: str = Field(..., alias="facility_id")
     latitude: float = Field(..., alias="facility_latitude")
     longitude: float = Field(..., alias="facility_longitude")
-    map_url:  Optional[str] = Field(..., alias="facility_map_url")
+    map_url: Optional[str] = Field(..., alias="facility_map_url")
     name: str = Field(..., alias="facility_name")
     phone: str = Field(..., alias="facility_phone")
     campground_type: CampgroundType = Field(..., alias="facility_type")
@@ -71,7 +71,7 @@ class RGApiCampground(BaseModel):
 
 class RGApiCampsite(BaseModel):
     id: str = Field(..., alias="campsite_id")
-    latitude:  float = Field(..., alias="campsite_latitude")
+    latitude: float = Field(..., alias="campsite_latitude")
     longitude: float = Field(..., alias="campsite_longitude")
     name: str = Field(..., alias="campsite_name")
     reserve_type: CampsiteReserveType = Field(..., alias="campsite_reserve_type")
@@ -119,10 +119,12 @@ class RGApiCampgroundAvailability(BaseModel):
         extra = Extra.ignore
 
     def __repr__(self) -> str:
-        dates = set(itertools.chain.from_iterable(
-            list(campsite.availabilities.keys())
-            for campsite in self.campsites.values()
-        ))
+        dates = set(
+            itertools.chain.from_iterable(
+                list(campsite.availabilities.keys())
+                for campsite in self.campsites.values()
+            )
+        )
 
         min_date = None
         max_date = None

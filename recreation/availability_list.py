@@ -70,42 +70,50 @@ class AvailabilityList(Generic[T]):
         return self.__class__(availability)
 
     def filter_dates(
-        self,         
+        self,
         start_date: Optional[dt.date] = None,
         end_date: Optional[dt.date] = None,
+        exclude_start_day: bool = False,
     ) -> "AvailabilityList[T]":
+        def compare_inclusive(x: dt.date, y: dt.date) -> bool:
+            return x >= y
+
+        def compare_exclusive(x: dt.date, y: dt.date) -> bool:
+            return x > y
+
+        compare = compare_exclusive if exclude_start_day else compare_inclusive
+
         availability = self.availability
         if start_date:
-            availability = [avail for avail in availability if avail.end_date >= start_date]
+            availability = [
+                avail for avail in availability if compare(avail.end_date, start_date)
+            ]
         if end_date:
             availability = [avail for avail in availability if avail.date <= end_date]
         return self.__class__(availability)
 
     def filter_days_of_week(
-        self,
-        days_of_week: Optional[list[int]] = None
+        self, days_of_week: Optional[list[int]] = None
     ) -> "AvailabilityList[T]":
         if (days_of_week is None) or (len(days_of_week) == 0):
             return self
-        availability = [avail for avail in self.availability if avail.date.weekday() in days_of_week]
+        availability = [
+            avail for avail in self.availability if avail.date.weekday() in days_of_week
+        ]
         return self.__class__(availability)
 
 
 class CampgroundAvailabilityList(AvailabilityList[CampgroundAvailability]):
-
     @staticmethod
     def _from_campground_month(
-        api_availability: RGApiCampgroundAvailability
+        api_availability: RGApiCampgroundAvailability,
     ) -> list[CampgroundAvailability]:
         availability: list[CampgroundAvailability] = []
 
         for _camp_id, camp_avail in api_availability.campsites.items():
             for date, date_avail in camp_avail.availabilities.items():
                 avail = CampgroundAvailability(
-                    id=camp_avail.id,
-                    date=date.date(),
-                    status=date_avail,
-                    length=1
+                    id=camp_avail.id, date=date.date(), status=date_avail, length=1
                 )
                 availability.append(avail)
 

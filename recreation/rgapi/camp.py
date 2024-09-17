@@ -14,6 +14,7 @@ class CampsiteType(str, enum.Enum):
     cabin_electric = "CABIN ELECTRIC"
     cabin_nonelectric = "CABIN NONELECTRIC"
     group_tent_only_area_nonelectric = "GROUP TENT ONLY AREA NONELECTRIC"
+    hike_to = "HIKE TO"
     lookout = "LOOKOUT"
     management = "MANAGEMENT"
     rv_nonelectric = "RV NONELECTRIC"
@@ -37,6 +38,7 @@ class CampsiteReserveType(str, enum.Enum):
 
 class CampsiteAvailabilityStatus(str, enum.Enum):
     available = "Available"
+    closed = "Closed"
     not_available = "Not Available"
     not_available_cutoff = "Not Available Cutoff"
     not_reservable = "Not Reservable"

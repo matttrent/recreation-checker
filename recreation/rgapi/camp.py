@@ -1,7 +1,7 @@
 import datetime as dt
 import enum
 import itertools
-from typing import Optional
+from typing import Dict, Optional
 
 from pydantic import BaseModel, Extra, Field
 
@@ -48,6 +48,21 @@ class CampsiteAvailabilityStatus(str, enum.Enum):
     reserved = "Reserved"
 
 
+class RGApiNoticeType(str, enum.Enum):
+    info = "info"
+    warning = "warning"
+
+
+class RGApiNotice(BaseModel):
+    notice_type: RGApiNoticeType
+    notice_text: str
+    hide_on_permit: bool
+    active: bool
+
+    class Config:
+        extra = Extra.ignore
+
+
 class RGApiCampground(BaseModel):
     campsite_ids: Optional[list[str]] = Field(default=None, alias="campsites")
     # campsite_ids: list[str] = Field(..., alias="campsites")
@@ -71,6 +86,46 @@ class RGApiCampground(BaseModel):
         return self.__repr__()
 
 
+class RGApiPermittedEquipment(BaseModel):
+    campsite_equipment_type_id: int
+    equipment_name: str
+    max_length: int
+    is_deactivated: bool
+
+    class Config:
+        extra = Extra.ignore
+
+
+class RGApiAttribute(BaseModel):
+    attribute_id: Optional[int]
+    attribute_name: str
+    attribute_value: Optional[str]
+    attribute_code: Optional[str]
+
+    class Config:
+        extra = Extra.ignore
+
+
+class RGApiSiteDetail(BaseModel):
+    attribute_id: Optional[int]
+    attribute_name: str
+    attribute_value: Optional[str]
+    attribute_code: Optional[str]
+
+    class Config:
+        extra = Extra.ignore
+
+
+class RGApiEquipmentDetail(BaseModel):
+    equipment_id: Optional[int]
+    attribute_name: str
+    attribute_value: Optional[str]
+    attribute_code: Optional[str]
+
+    class Config:
+        extra = Extra.ignore
+
+
 class RGApiCampsite(BaseModel):
     id: str = Field(..., alias="campsite_id")
     latitude: float = Field(..., alias="campsite_latitude")
@@ -82,6 +137,15 @@ class RGApiCampsite(BaseModel):
     campground_id: str = Field(..., alias="facility_id")
     loop: Optional[str]
     parent_site_id: Optional[str]
+    is_accessible: bool
+    is_deactivated: bool
+    permitted_equipment: list[RGApiPermittedEquipment]
+    notices: list[RGApiNotice]
+    attributes: list[RGApiAttribute]
+    site_details: Dict[str, RGApiSiteDetail] = Field(..., alias="site_details_map")
+    equipment_details: Dict[str, RGApiEquipmentDetail] = Field(
+        ..., alias="equipment_details_map"
+    )
 
     class Config:
         extra = Extra.ignore

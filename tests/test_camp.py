@@ -1,33 +1,33 @@
 import datetime as dt
+from typing import Any
+
 import pytest
-from typing import Any, Dict
 
 from recreation.rgapi.camp import (
-    CampsiteAvailabilityStatus,
-    RGApiCampground,
-    RGApiCampgroundAvailability,
-    RGApiCampsite,
     CampgroundType,
+    CampsiteAvailabilityStatus,
     CampsiteReserveType,
     CampsiteStatus,
     CampsiteType,
-    RgApiCampsiteAvailability,
+    RGApiCampground,
+    RGApiCampgroundAvailability,
+    RGApiCampsite,
 )
 
 
 @pytest.fixture
 def campsite_data() -> dict[str, Any]:
     return {
-        'campsite_id': '64082',
-        'campsite_latitude': 41.578691,
-        'campsite_longitude': -121.658252,
-        'campsite_name': '001',
-        'campsite_reserve_type': 'Site-Specific',
-        'campsite_status': 'Open',
-        'campsite_type': 'CABIN NONELECTRIC',
-        'facility_id': '234436',
-        'loop': 'AREA LITTLE MT. HOFFMAN LOOKOUT',
-        'parent_site_id': None
+        "campsite_id": "64082",
+        "campsite_latitude": 41.578691,
+        "campsite_longitude": -121.658252,
+        "campsite_name": "001",
+        "campsite_reserve_type": "Site-Specific",
+        "campsite_status": "Open",
+        "campsite_type": "CABIN NONELECTRIC",
+        "facility_id": "234436",
+        "loop": "AREA LITTLE MT. HOFFMAN LOOKOUT",
+        "parent_site_id": None,
     }
 
 
@@ -39,16 +39,16 @@ def campsite(campsite_data) -> RGApiCampsite:
 @pytest.fixture
 def campground_data() -> dict[str, Any]:
     return {
-        'campsites': ['64082'],
-        'facility_email': '',
-        'facility_id': '234436',
-        'facility_latitude': 41.5786111,
-        'facility_longitude': -121.6597222,
-        'facility_map_url': '',
-        'facility_name': 'LITTLE MT. HOFFMAN LOOKOUT',
-        'facility_phone': '530-964-2184',
-        'facility_type': 'STANDARD',
-        'parent_asset_id': '1073'
+        "campsites": ["64082"],
+        "facility_email": "",
+        "facility_id": "234436",
+        "facility_latitude": 41.5786111,
+        "facility_longitude": -121.6597222,
+        "facility_map_url": "",
+        "facility_name": "LITTLE MT. HOFFMAN LOOKOUT",
+        "facility_phone": "530-964-2184",
+        "facility_type": "STANDARD",
+        "parent_asset_id": "1073",
     }
 
 
@@ -71,14 +71,14 @@ def test_campsite_init(campsite_data):
 
 def test_campground_init(campground_data):
     campground = RGApiCampground(**campground_data)
-    assert campground.campsite_ids == ['64082']
-    assert campground.email == ''
-    assert campground.id == '234436'
+    assert campground.campsite_ids == ["64082"]
+    assert campground.email == ""
+    assert campground.id == "234436"
     assert campground.latitude == 41.5786111
     assert campground.longitude == -121.6597222
-    assert campground.map_url == ''
-    assert campground.name == 'LITTLE MT. HOFFMAN LOOKOUT'
-    assert campground.phone == '530-964-2184'
+    assert campground.map_url == ""
+    assert campground.name == "LITTLE MT. HOFFMAN LOOKOUT"
+    assert campground.phone == "530-964-2184"
     assert campground.campground_type == CampgroundType.standard
 
 
@@ -117,14 +117,14 @@ def test_campground_availability_init(campground_availability_data):
     assert site.reserve_type == CampsiteReserveType.site_specific
 
     assert (
-        site.availabilities[dt.datetime(2022, 7, 1, tzinfo=dt.timezone.utc)] ==
-        CampsiteAvailabilityStatus.available
+        site.availabilities[dt.datetime(2022, 7, 1, tzinfo=dt.timezone.utc)]
+        == CampsiteAvailabilityStatus.available
     )
     assert (
-        site.availabilities[dt.datetime(2022, 7, 2, tzinfo=dt.timezone.utc)] ==
-        CampsiteAvailabilityStatus.available
+        site.availabilities[dt.datetime(2022, 7, 2, tzinfo=dt.timezone.utc)]
+        == CampsiteAvailabilityStatus.available
     )
     assert (
-        site.availabilities[dt.datetime(2022, 7, 3, tzinfo=dt.timezone.utc)] ==
-        CampsiteAvailabilityStatus.not_available
+        site.availabilities[dt.datetime(2022, 7, 3, tzinfo=dt.timezone.utc)]
+        == CampsiteAvailabilityStatus.not_available
     )

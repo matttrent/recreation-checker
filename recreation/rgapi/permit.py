@@ -66,11 +66,7 @@ class RGApiPermit(BaseModel):
     def __init__(self, **data: dict[str, Any]) -> None:
         super().__init__(**data)
 
-        self._entrances = {
-            entry.id : entry
-            for entry in self.entrance_list
-        }
-
+        self._entrances = {entry.id: entry for entry in self.entrance_list}
 
     class Config:
         extra = Extra.ignore
@@ -113,10 +109,12 @@ class RGApiPermitAvailability(BaseModel):
         extra = Extra.ignore
 
     def __repr__(self) -> str:
-        dates = set(itertools.chain.from_iterable(
-            list(avail.date_availability.keys())
-            for avail in self.availability.values()
-        ))
+        dates = set(
+            itertools.chain.from_iterable(
+                list(avail.date_availability.keys())
+                for avail in self.availability.values()
+            )
+        )
 
         min_date = None
         max_date = None

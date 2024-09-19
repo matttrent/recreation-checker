@@ -32,7 +32,6 @@ PERMIT_IDS = {
 
 
 class Campsite:
-
     api_campsite: RGApiCampsite
 
     def __init__(self, api_campsite: RGApiCampsite) -> None:
@@ -55,7 +54,6 @@ class Campsite:
 
 
 class Campground:
-
     api_campground: RGApiCampground
 
     campsites: dict[str, Campsite] = {}
@@ -97,9 +95,7 @@ class Campground:
         sites = client.get_campground_sites(self.id)
         # if self.campsite_ids is None:
         #     self.campsite_ids = [site.id for site in sites]
-        self.campsites = {
-            site.id: Campsite(site) for site in sites
-        }
+        self.campsites = {site.id: Campsite(site) for site in sites}
 
     def fetch_alerts(self) -> None:
         client = RecreationGovClient()
@@ -110,20 +106,21 @@ class Campground:
         self.ratings = client.get_ratings(self.id, LocationType.campground)
 
     def fetch_availability(
-        self, start_date: dt.date, end_date: Optional[dt.date] = None,
-        aggregate: bool = True
+        self,
+        start_date: dt.date,
+        end_date: Optional[dt.date] = None,
+        aggregate: bool = True,
     ) -> CampgroundAvailabilityList:
         # Call the static method from CampgroundAvailabilityList
         return CampgroundAvailabilityList.fetch_availability(
             campground_id=self.id,
             start_date=start_date,
             end_date=end_date,
-            aggregate=aggregate
+            aggregate=aggregate,
         )
 
 
 class Permit:
-
     api_permit: RGApiPermit
 
     entrances: dict[str, RgApiPermitEntrance]
@@ -133,10 +130,7 @@ class Permit:
     def __init__(self, api_permit: RGApiPermit):
         self.api_permit = api_permit
 
-        self.entrances = {
-            entry.id : entry
-            for entry in self.api_permit.entrance_list
-        }
+        self.entrances = {entry.id: entry for entry in self.api_permit.entrance_list}
 
     @staticmethod
     def fetch(permit_id: IntOrStr, fetch_all: bool = False) -> "Permit":
@@ -144,7 +138,7 @@ class Permit:
         if permit_id in PERMIT_IDS:
             permit_id = PERMIT_IDS[permit_id]
         permit = client.get_permit(permit_id)
-        
+
         perm = Permit(permit)
 
         if fetch_all:
@@ -165,7 +159,7 @@ class Permit:
     @property
     def url(self) -> str:
         return f"https://www.recreation.gov/permits/{self.id}"
-    
+
     def division_for_code(self, code: str) -> RgApiPermitDivision:
         for divis in self.divisions.values():
             if divis.code == code:
@@ -193,7 +187,5 @@ class Permit:
     ) -> PermitAvailabilityList:
         # Adjust to call the static method from PermitAvailabilityList
         return PermitAvailabilityList.fetch_availability(
-            permit_id=self.id,
-            start_date=start_date,
-            end_date=end_date
+            permit_id=self.id, start_date=start_date, end_date=end_date
         )

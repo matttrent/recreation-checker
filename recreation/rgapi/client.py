@@ -2,12 +2,11 @@ import datetime as dt
 
 import apiclient.exceptions
 import backoff
-
-from apiclient import (    
+from apiclient import (
     APIClient,
-    endpoint,
-    JsonResponseHandler,
     JsonRequestFormatter,
+    JsonResponseHandler,
+    endpoint,
 )
 from apiclient_pydantic import serialize_all_methods
 from fake_useragent import UserAgent
@@ -15,8 +14,8 @@ from fake_useragent import UserAgent
 from ..core import IntOrStr
 from .camp import (
     RGApiCampground,
-    RGApiCampsite,
     RGApiCampgroundAvailability,
+    RGApiCampsite,
 )
 from .extra import LocationType, RGApiAlert, RGApiRatingAggregate
 from .permit import (
@@ -25,10 +24,7 @@ from .permit import (
     RGApiPermitInyoAvailability,
 )
 
-
-BACKOFF_EXCEPTIONS = (
-    apiclient.exceptions.APIClientError,
-)
+BACKOFF_EXCEPTIONS = (apiclient.exceptions.APIClientError,)
 BACKOFF_TRIES = 5
 
 
@@ -43,13 +39,12 @@ class RecreationGovEndpoint:
     rating_aggregate = "ratingreview/aggregate"
 
     campground_availability = "camps/availability/campground/{id}/month"
-    permit_availability = "permits/{id}/availability/month" 
+    permit_availability = "permits/{id}/availability/month"
     permitinyo_availability = "permitinyo/{id}/availability"
 
 
 @serialize_all_methods()
 class RecreationGovClient(APIClient):
-
     def __init__(self):
         super().__init__(
             response_handler=JsonResponseHandler,
@@ -95,10 +90,7 @@ class RecreationGovClient(APIClient):
     ) -> list[RGApiAlert]:
         url = RecreationGovEndpoint.alert.format()
         headers = self.get_default_headers()
-        params = {
-            "location_id": location_id,
-            "location_type": location_type.value
-        }
+        params = {"location_id": location_id, "location_type": location_type.value}
         resp = self.get(url, headers=headers, params=params)
         return resp["alerts"]
 
@@ -108,10 +100,7 @@ class RecreationGovClient(APIClient):
     ) -> RGApiRatingAggregate:
         url = RecreationGovEndpoint.rating_aggregate.format()
         headers = self.get_default_headers()
-        params = {
-            "location_id": location_id,
-            "location_type": location_type.value
-        }
+        params = {"location_id": location_id, "location_type": location_type.value}
         resp = self.get(url, headers=headers, params=params)
         return resp
 
@@ -128,9 +117,7 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.campground_availability.format(id=campground_id)
         headers = self.get_default_headers()
         start_date = start_date.replace(day=1)
-        params = {
-            "start_date": self._format_date(start_date)
-        }
+        params = {"start_date": self._format_date(start_date)}
         resp = self.get(url, headers=headers, params=params)
         return resp
 
@@ -141,9 +128,7 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.permit_availability.format(id=permit_id)
         headers = self.get_default_headers()
         start_date = start_date.replace(day=1)
-        params = {
-            "start_date": self._format_date(start_date)
-        }
+        params = {"start_date": self._format_date(start_date)}
         resp = self.get(url, headers=headers, params=params)
         return resp["payload"]
 
@@ -154,7 +139,5 @@ class RecreationGovClient(APIClient):
         url = RecreationGovEndpoint.permitinyo_availability.format(id=permit_id)
         headers = self.get_default_headers()
         start_date = start_date.replace(day=1)
-        params = {
-            "start_date": self._format_date(start_date)
-        }
-        return self.get(url, headers=headers, params=params) 
+        params = {"start_date": self._format_date(start_date)}
+        return self.get(url, headers=headers, params=params)

@@ -1,22 +1,9 @@
-import datetime as dt
 from http.client import responses
-import pytest
 
+import pytest
 import responses
 
-from recreation.models import (
-    Campground,
-    Campsite,
-    Permit
-)
-
-
-from test_camp import (
-    campground,
-    campground_data,
-    campsite,
-    campsite_data,
-)
+from recreation.models import Campground, Campsite
 
 
 @pytest.fixture
@@ -29,20 +16,17 @@ def test_campsite_init(campsite_model, campsite_data):
     assert campsite_model.id == camp_id
     assert campsite_model.name == campsite_data["campsite_name"]
     assert (
-        campsite_model.url == 
-        f"https://www.recreation.gov/camping/campsites/{camp_id}"
+        campsite_model.url == f"https://www.recreation.gov/camping/campsites/{camp_id}"
     )
 
 
 @responses.activate
 def test_campsite_fetch(campsite_model, campsite_data):
     camp_id = "64082"
-    resp = {
-        "campsite": campsite_data
-    }
+    resp = {"campsite": campsite_data}
     responses.add(
         responses.GET,
-        f"https://www.recreation.gov/api/camps/campsites/64082",
+        "https://www.recreation.gov/api/camps/campsites/64082",
         json=resp,
         status=200,
     )
@@ -50,10 +34,7 @@ def test_campsite_fetch(campsite_model, campsite_data):
     site = Campsite.fetch(camp_id)
     assert site.id == camp_id
     assert site.name == campsite_model.name
-    assert (
-        site.url == 
-        f"https://www.recreation.gov/camping/campsites/{camp_id}"
-    )
+    assert site.url == f"https://www.recreation.gov/camping/campsites/{camp_id}"
 
 
 @pytest.fixture
@@ -65,8 +46,7 @@ def test_campground_init(campground_model, campground_data):
     cid = campground_data["facility_id"]
     assert campground_model.id == cid
     assert (
-        campground_model.url == 
-        f"https://www.recreation.gov/camping/campgrounds/{cid}"
+        campground_model.url == f"https://www.recreation.gov/camping/campgrounds/{cid}"
     )
     assert campground_model.campsite_ids == ["64082"]
     assert campground_model.campsites == {}
@@ -75,12 +55,10 @@ def test_campground_init(campground_model, campground_data):
 @responses.activate
 def test_campground_fetch(campground_model, campground_data):
     camp_id = "234436"
-    resp = {
-        "campground": campground_data
-    }
+    resp = {"campground": campground_data}
     responses.add(
         responses.GET,
-        f"https://www.recreation.gov/api/camps/campgrounds/234436",
+        "https://www.recreation.gov/api/camps/campgrounds/234436",
         json=resp,
         status=200,
     )
@@ -88,10 +66,7 @@ def test_campground_fetch(campground_model, campground_data):
     site = Campground.fetch(camp_id)
     assert site.id == camp_id
     assert site.name == campground_model.name
-    assert (
-        site.url == 
-        f"https://www.recreation.gov/camping/campgrounds/{camp_id}"
-    )
+    assert site.url == f"https://www.recreation.gov/camping/campgrounds/{camp_id}"
 
 
 @responses.activate

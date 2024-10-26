@@ -4,3 +4,7 @@ __pycache__
 /tweetlog
 /twitter_credentials.py
 .mypy_cache
+.pytest_cache
+.vscode
+recreation.egg-info
+notebooks/.ipynb_checkpoints
